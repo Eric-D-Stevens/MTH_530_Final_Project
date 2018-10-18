@@ -2,8 +2,8 @@
 Team final project for R programming course. 
 
 ### Team Members
-Alex Salem
-Jeevan Bihari
+Alex Salem <br>
+Jeevan Bihari <br>
 Eric Stevens
 
 
