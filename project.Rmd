@@ -1,0 +1,13 @@
+---
+title: "project"
+output: html_document
+---
+
+```{r warning=FALSE,message=FALSE}
+library(tidyverse)
+library(skimr)
+library(readxl) # to read in the xlsx file
+project_data <- read_excel("raw_data.xlsx", sheet = 1)
+glimpse(project_data)
+skim(project_data)
+```
