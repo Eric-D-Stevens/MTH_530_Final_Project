@@ -1,0 +1,185 @@
+---
+title: "project"
+output: html_document
+---
+
+```{r warning=FALSE,message=FALSE}
+library(tidyverse)
+library(skimr)
+library(readxl) # to read in the xlsx file
+library(naniar) #for replacing 6 with NA
+project_data <- read_excel("raw_data.xlsx", sheet = 1)
+glimpse(project_data)
+skim(project_data)
+```
+## Tidied Data
+```{r}
+project_data_tidied <- project_data %>% 
+  select(-X__1, -X__2) %>% 
+  replace_with_na_at(.vars = c("CARE1", "CARE2", "CARE3", "CARE4", "CARE5", "CARE6", "CARE7", "CARE8", "CARE9", "CARE10"),
+                     condition = ~.x == 6)
+project_data_tidied
+```
+
+
+## Exploring study numbers
+The first run had N=194 participants, all wore white coats, empathetic and not empathetic. This corresponds to study 1. The second run had N=1177 participants, mix of coat/no coat, empathetic/not empathetic in each study. This corresponds to studies 2-4.
+```{r}
+project_data %>% 
+  select(subid, condcoat, condemp, study) %>% 
+  count(study)
+```
+
+
+```{r}
+project_data %>% 
+  filter(condcoat == 1 & condemp == 1) %>% 
+  select(subid, condcoat, study) %>% 
+  count(study)
+project_data %>% 
+  filter(condcoat == 1 & condemp == 0) %>% 
+  select(subid, condcoat, study) %>% 
+  count(study)
+project_data %>% 
+  filter(condcoat == 0 & condemp == 1) %>% 
+  select(subid, condcoat, study) %>% 
+  count(study)
+project_data %>% 
+  filter(condcoat == 0 & condemp == 0) %>% 
+  select(subid, condcoat, study) %>% 
+  count(study)
+```
+
+## Exploring missing columns
+```{r}
+project_data %>% 
+  filter(X__1 == 0 | X__1 == 1| X__2 == 0| X__2 ==1) 
+```
+All 161 observations with a 0 or 1 (so, not NA) in X__1 or X__2 are from study 1. That's out of 194 total observations in study 1.
+
+
+```{r}
+project_data %>% 
+  filter(study == 1) %>% 
+  filter(X__2 ==  1 & condemp == 1)
+```
+
+
+```{r}
+project_data %>% 
+  filter(X__1 == 1 | X__2 == 1) %>% 
+  skim()
+```
+
+```{r}
+project_data %>% 
+  filter(X__1 == 1) %>% 
+  skim()
+```
+
+
+```{r}
+project_data %>% 
+  filter(X__2 == 1) %>% 
+  skim()
+```
+
+##Checking on some means from the paper.
+
+### Participant ratings of physician empathy (CARE ratings):
+Paper says "Adjusting for mood, we found a significant main effect of nonverbal behavior on ratings of empathy such that participants rated physicians displaying empathic nonverbal behavior as more empathic (M = 3.29, SD = 1.15) than physicians displaying unempathic nonverbal behavior (M = 1.86, SD = .93, F(1,1362) = 568.49, p < .001, η2 p = .30; see Fig 3)."
+```{r}
+project_data %>% 
+  filter(condemp == 1) %>% 
+  select(starts_with("CARE")) %>% 
+  replace_with_na_all(condition = ~.x == 6)%>% 
+  skim()
+mean(c(3.58, 3.14, 2.94, 3.46, 2.94, 3.36, 3.42, 3.95, 3.02, 2.84)) #mean of means
+mean(c(1.27, 1.4, 1.32, 1.34, 1.38, 1.44, 1.32, 1.1, 1.37, 1.34)) #mean of SDs
+project_data %>% 
+  filter(condemp == 0) %>% 
+  select(starts_with("CARE")) %>% 
+  replace_with_na_all(condition = ~.x == 6)%>% 
+  skim()
+mean(c(1.85, 1.89, 1.77, 1.68, 1.61, 1.96, 1.7, 2.5, 1.9, 1.66)) #mean of means
+mean(c(1.08, 1.15, 1.06, 1.05, 1, 1.15, 1.06, 1.15, 1.12, 1.02)) #mean of SDs
+```
+Without adjusting for mood, we're getting means ands SDs that are close to those in the paper. In the replication we'll need to do adjusted mean--I think this can be done with ANCOVA which we haven't learned yet.
+
+### Participant ratings of physician warmth (WARM ratings):
+Paper says "Adjusting for mood, we found a significant main effect of nonverbal behavior on ratings of warmth such that participants rated physicians displaying empathic nonverbal behavior as more warm (M = 3.73, SD = .93) than physicians displaying unempathic nonverbal behavior (M = 2.28, SD = .98, F(1,1362) = 674.49, p < .001, η2 p = .33)."
+
+Below, I check those means:
+```{r}
+project_data %>% 
+  filter(condemp == 1) %>% 
+  select(WARM1, WARM2, WARM3, WARM4) %>% 
+  skim()
+mean(c(3.58, 3.65, 3.88, 3.82)) #mean of means
+mean(c(1.08, 1.16, 1, 1.06)) #mean of SDs
+project_data %>% 
+  filter(condemp == 0) %>% 
+  select(WARM1, WARM2, WARM3, WARM4) %>% 
+  skim()
+mean(c(2.48, 1.9, 2.33, 2.44)) #mean of means
+mean(c(1.11, 1.04, 1.12, 1.19)) #mean of SDs
+```
+
+Without adjusting anything for mood, I get the mean of 3.73 for the empathetic doctors and the mean of 2.28 for the non-empathetic doctors. So, those match the paper. The SDs don't match, I assume because I didn't do any adjusting for mood. For the empathetic doctors I got 1.075 (in comparison to .93) and for the non-empathetic doctors I got 1.115 (in comparison to .98).
+
+### Participant ratings of physician competence (COMP ratings):
+Adjusting for mood, there was a significant main effect of nonverbal behavior on ratings of competence, such that participants rated physicians displaying empathic nonverbal behavior as more competent (M = 3.64, SD = .65) than physicians displaying unempathic nonverbal behavior (M = 3.21, SD = .81, F(1,1362) = 85.11, p < .001, η2 p = .06).
+
+Below, I check those means:
+```{r}
+project_data %>% 
+  filter(condemp == 1) %>% 
+  select(starts_with("COMP")) %>% 
+  skim()
+mean(c(4.04, 4.25, 3.41, 2.14, 4.07)) #mean of means
+mean(c(.93, .86, 1.08, 1.22, .88)) # mean of SDs
+project_data %>% 
+  filter(condemp == 0) %>% 
+  select(starts_with("COMP")) %>% 
+  skim()
+mean(c(3.21, 3.55, 3.34, 2.38, 3.34)) #mean of means
+mean(c(1.08, 1.11, 1.1, 1.17, 1.03)) #mean of SDs
+```
+Again, without adjusting for mood, we're getting means ands SDs that are close to those in the paper. 
+
+### Create composite measures for moods
+
+```{r}
+# creating mood related composite metric based on row-wise means of PANAS positive and negative values using one of the technique shown here: https://stackoverflow.com/questions/9490485/how-can-i-get-the-average-mean-of-selected-columns
+# Composite measure (mean) of the positive mood subscale
+project_data_tidied$positive_mood <- rowMeans(subset(project_data_tidied, select = c(PANASPOS1, PANASPOS2, PANASPOS3, PANASPOS4, PANASPOS5, PANASPOS6, PANASPOS7, PANASPOS8, PANASPOS9, PANASPOS10)), na.rm = TRUE)
+project_data_tidied$positive_mood
+# Composite measure (mean) of the negative mood subscale
+project_data_tidied$negative_mood <- rowMeans(subset(project_data_tidied, select = c(PANASNEG1, PANASNEG2, PANASNEG3, PANASNEG4, PANASNEG5, PANASNEG6, PANASNEG7, PANASNEG8, PANASNEG9, PANASNEG10)), na.rm = TRUE)
+project_data_tidied$negative_mood
+```
+
+### empathy ANCOVA with moods as covariate
+
+```{r}
+# Composite measure (mean) of the empathy values per subject
+project_data_tidied$empathy <- rowMeans(subset(project_data_tidied, select = c(CARE1, CARE2, CARE3, CARE4, CARE5, CARE6, CARE7, CARE8, CARE9, CARE10)), na.rm = TRUE)
+project_data_tidied$empathy
+```
+
+
+### warmth ANCOVA with moods as covariates
+
+```{r}
+# Composite measure (mean) of the warmth values per patient
+project_data_tidied$warmth <- rowMeans(subset(project_data_tidied, select = c(WARM1, WARM2, WARM3, WARM4)), na.rm = TRUE)
+project_data_tidied$warmth
+```
+
+### competence ANCOVA with moods as covariates
+
+```{r}
+# Composite measure (mean) of the competence values per patient
+project_data_tidied$competence <- rowMeans(subset(project_data_tidied, select = c(COMP1, COMP2, COMP3, COMP4, COMP5)), na.rm = TRUE)
+project_data_tidied$competence
+```
