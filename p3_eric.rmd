@@ -1,0 +1,341 @@
+---
+title: "project"
+output: html_document
+---
+
+```{r warning=FALSE,message=FALSE}
+library(tidyverse)
+library(skimr)
+library(readxl) # to read in the xlsx file
+library(naniar) #for replacing 6 with NA
+# install packages needed for ANCOVA analysis as per the "Discovering Statistics Using R" book by Field, Miles and Field
+#install.packages("car"); install.packages("akima"); install.packages("compute.es"); install.packages ("effects");install.packages("ggplot2");install.packages("multcomp");install.packages("pastecs"); install.packages("WRS", repos="http://R-Forge.R-project.org")
+# load ANCOVA relate libraries after installing them
+library(car); # for Levene’s test, Type III sums of squares
+library(compute.es); # for effect sizes
+library(effects); # for adjusted means
+library(ggplot2); # for graphs
+library(multcomp); # for post hoc tests
+library(pastecs); # for descriptive statistics
+#library(WRS) # for robust tests
+
+project_data <- read_excel("raw_data.xlsx", sheet = 1)
+glimpse(project_data)
+skim(project_data)
+```
+## Tidied Data
+```{r}
+project_data_tidied <- project_data %>% 
+  dplyr::select(-X__1, -X__2) %>% 
+  replace_with_na_at(.vars = c("CARE1", "CARE2", "CARE3", "CARE4", "CARE5", "CARE6", "CARE7", "CARE8", "CARE9", "CARE10"),
+                     condition = ~.x == 6)
+project_data_tidied
+```
+
+
+## Exploring study numbers
+The first run had N=194 participants, all wore white coats, empathetic and not empathetic. This corresponds to study 1. The second run had N=1177 participants, mix of coat/no coat, empathetic/not empathetic in each study. This corresponds to studies 2-4.
+```{r}
+project_data %>% 
+  dplyr::select(subid, condcoat, condemp, study) %>% 
+  count(study)
+```
+
+
+```{r}
+project_data %>% 
+  filter(condcoat == 1 & condemp == 1) %>% 
+  dplyr::select(subid, condcoat, study) %>% 
+  count(study)
+project_data %>% 
+  filter(condcoat == 1 & condemp == 0) %>% 
+  dplyr::select(subid, condcoat, study) %>% 
+  count(study)
+project_data %>% 
+  filter(condcoat == 0 & condemp == 1) %>% 
+  dplyr::select(subid, condcoat, study) %>% 
+  count(study)
+project_data %>% 
+  filter(condcoat == 0 & condemp == 0) %>% 
+  dplyr::select(subid, condcoat, study) %>% 
+  count(study)
+```
+
+## Exploring missing columns
+```{r}
+project_data %>% 
+  filter(X__1 == 0 | X__1 == 1| X__2 == 0| X__2 ==1) 
+```
+All 161 observations with a 0 or 1 (so, not NA) in X__1 or X__2 are from study 1. That's out of 194 total observations in study 1.
+
+
+```{r}
+project_data %>% 
+  filter(study == 1) %>% 
+  filter(X__2 ==  1 & condemp == 1)
+```
+
+
+```{r}
+project_data %>% 
+  filter(X__1 == 1 | X__2 == 1) %>% 
+  skim()
+```
+
+```{r}
+project_data %>% 
+  filter(X__1 == 1) %>% 
+  skim()
+```
+
+
+```{r}
+project_data %>% 
+  filter(X__2 == 1) %>% 
+  skim()
+```
+
+##Checking on some means from the paper.
+
+### Participant ratings of physician empathy (CARE ratings):
+Paper says "Adjusting for mood, we found a significant main effect of nonverbal behavior on ratings of empathy such that participants rated physicians displaying empathetic nonverbal behavior as more empathic (M = 3.29, SD = 1.15) than physicians displaying unempathic nonverbal behavior (M = 1.86, SD = .93, F(1,1362) = 568.49, p < .001, η2 p = .30; see Fig 3)."
+```{r}
+project_data %>% 
+  filter(condemp == 1) %>% 
+  dplyr::select(starts_with("CARE")) %>% 
+  replace_with_na_all(condition = ~.x == 6)%>% 
+  skim()
+mean(c(3.58, 3.14, 2.94, 3.46, 2.94, 3.36, 3.42, 3.95, 3.02, 2.84)) #mean of means
+mean(c(1.27, 1.4, 1.32, 1.34, 1.38, 1.44, 1.32, 1.1, 1.37, 1.34)) #mean of SDs
+project_data %>% 
+  filter(condemp == 0) %>% 
+  dplyr::select(starts_with("CARE")) %>% 
+  replace_with_na_all(condition = ~.x == 6)%>% 
+  skim()
+mean(c(1.85, 1.89, 1.77, 1.68, 1.61, 1.96, 1.7, 2.5, 1.9, 1.66)) #mean of means
+mean(c(1.08, 1.15, 1.06, 1.05, 1, 1.15, 1.06, 1.15, 1.12, 1.02)) #mean of SDs
+```
+Without adjusting for mood, we're getting means and SDs that are close to those in the paper. In the replication we'll need to do adjusted mean--I think this can be done with ANCOVA which we haven't learned yet.
+
+### Participant ratings of physician warmth (WARM ratings):
+Paper says "Adjusting for mood, we found a significant main effect of nonverbal behavior on ratings of warmth such that participants rated physicians displaying empathic nonverbal behavior as more warm (M = 3.73, SD = .93) than physicians displaying unempathic nonverbal behavior (M = 2.28, SD = .98, F(1,1362) = 674.49, p < .001, η2 p = .33)."
+
+Below, I check those means:
+```{r}
+project_data %>% 
+  filter(condemp == 1) %>% 
+  dplyr::select(WARM1, WARM2, WARM3, WARM4) %>% 
+  skim()
+mean(c(3.58, 3.65, 3.88, 3.82)) #mean of means
+mean(c(1.08, 1.16, 1, 1.06)) #mean of SDs
+project_data %>% 
+  filter(condemp == 0) %>% 
+  dplyr::select(WARM1, WARM2, WARM3, WARM4) %>% 
+  skim()
+mean(c(2.48, 1.9, 2.33, 2.44)) #mean of means
+mean(c(1.11, 1.04, 1.12, 1.19)) #mean of SDs
+```
+
+Without adjusting anything for mood, I get the mean of 3.73 for the empathetic doctors and the mean of 2.28 for the non-empathetic doctors. So, those match the paper. The SDs don't match, I assume because I didn't do any adjusting for mood. For the empathetic doctors I got 1.075 (in comparison to .93) and for the non-empathetic doctors I got 1.115 (in comparison to .98).
+
+### Participant ratings of physician competence (COMP ratings):
+Adjusting for mood, there was a significant main effect of nonverbal behavior on ratings of competence, such that participants rated physicians displaying empathic nonverbal behavior as more competent (M = 3.64, SD = .65) than physicians displaying unempathic nonverbal behavior (M = 3.21, SD = .81, F(1,1362) = 85.11, p < .001, η2 p = .06).
+
+Below, I check those means:
+```{r}
+project_data %>% 
+  filter(condemp == 1) %>% 
+  dplyr::select(starts_with("COMP")) %>% 
+  skim()
+mean(c(4.04, 4.25, 3.41, 2.14, 4.07)) #mean of means
+mean(c(.93, .86, 1.08, 1.22, .88)) # mean of SDs
+project_data %>% 
+  filter(condemp == 0) %>% 
+  dplyr::select(starts_with("COMP")) %>% 
+  skim()
+mean(c(3.21, 3.55, 3.34, 2.38, 3.34)) #mean of means
+mean(c(1.08, 1.11, 1.1, 1.17, 1.03)) #mean of SDs
+```
+Again, without adjusting for mood, we're getting means ands SDs that are close to those in the paper. 
+
+### Create composite measures for moods
+
+```{r}
+# convert binary data to 2-level factors
+project_data_tidied$factored_sex<-factor(project_data_tidied$sex, levels = c(0,1), labels = c("Male", "Female"))
+project_data_tidied$factored_condemp<-factor(project_data_tidied$condemp, levels = c(0,1), labels = c("Non-Empathetic", "Empathetic"))
+# creating mood related composite metric based on row-wise means of PANAS positive and negative values using one of the technique shown here: https://stackoverflow.com/questions/9490485/how-can-i-get-the-average-mean-of-selected-columns
+# Composite measure (mean) of the positive mood subscale
+project_data_tidied$positive_mood <- rowMeans(subset(project_data_tidied, select = c(PANASPOS1, PANASPOS2, PANASPOS3, PANASPOS4, PANASPOS5, PANASPOS6, PANASPOS7, PANASPOS8, PANASPOS9, PANASPOS10)), na.rm = TRUE)
+#project_data_tidied$positive_mood
+# Composite measure (mean) of the negative mood subscale
+project_data_tidied$negative_mood <- rowMeans(subset(project_data_tidied, select = c(PANASNEG1, PANASNEG2, PANASNEG3, PANASNEG4, PANASNEG5, PANASNEG6, PANASNEG7, PANASNEG8, PANASNEG9, PANASNEG10)), na.rm = TRUE)
+#project_data_tidied$negative_mood
+# check predictor and covariate independence
+covariate_independence1 <- lm(positive_mood ~ factored_condemp+factored_sex+factored_condemp*factored_sex, project_data_tidied)
+anova(covariate_independence1)
+covariate_independence2 <- lm(negative_mood ~ factored_condemp+factored_sex+factored_condemp*factored_sex, project_data_tidied)
+anova(covariate_independence2)
+```
+
+### empathy ANCOVA with moods as covariate
+
+```{r}
+# Composite measure (mean) of the empathy values per subject
+project_data_tidied$empathy <- rowMeans(subset(project_data_tidied, select = c(CARE1, CARE2, CARE3, CARE4, CARE5, CARE6, CARE7, CARE8, CARE9, CARE10)), na.rm = TRUE)
+#project_data_tidied$empathy
+# perform Levene test for perceived empathy vs. sex
+leveneTest(project_data_tidied$empathy, project_data_tidied$factored_sex, center = median)
+# perform Levene test for perceived empathy vs. non-verbal empathy cues
+leveneTest(project_data_tidied$empathy, project_data_tidied$factored_condemp, center = median)
+# perform ANCOVA for empathy DV
+empathyModel<-aov(empathy ~ factored_condemp + positive_mood + factored_sex + negative_mood, data = project_data_tidied)
+Anova(empathyModel, type="III")
+```
+
+#### Levene test shows that the variances of perceived empathy vs. sex are similar but the variances between perceived empathy and non-verbal empathetic cues are dissimilar 
+
+### warmth ANCOVA with moods as covariates
+
+```{r}
+# Composite measure (mean) of the warmth values per patient
+project_data_tidied$warmth <- rowMeans(subset(project_data_tidied, select = c(WARM1, WARM2, WARM3, WARM4)), na.rm = TRUE)
+# perform ANCOVA for empathy DV
+warmthModel<-aov(warmth ~ factored_condemp + positive_mood + factored_sex + negative_mood, data = project_data_tidied)
+Anova(warmthModel, type="III")
+```
+
+### competence ANCOVA with moods as covariates
+
+```{r}
+# Composite measure (mean) of the competence values per patient
+project_data_tidied$competence <- rowMeans(subset(project_data_tidied, select = c(COMP1, COMP2, COMP3, COMP4, COMP5)), na.rm = TRUE)
+# perform ANCOVA for competence DV
+competenceModel<-aov(competence ~ factored_condemp + positive_mood + factored_sex + negative_mood, data = project_data_tidied)
+Anova(competenceModel, type="III")
+```
+
+
+```{r}
+glimpse(project_data_tidied)
+```
+
+
+### Breakdown of Factor Data
+
+First lets have a look at the break down of our stimuli. The stimuli consist of two major categories, sex of the doctor, and attitude of the doctor. We are evaluating these categories each as binary options. The doctor that the subject is exposed to is either male or female and the attitude of that doctor is either empathetic or non-empathetic. Below is a plot of the relative amount of each of the four resulting categories that we have for our data.
+```{r}
+ggplot(project_data_tidied, aes(x=factored_condemp, fill = factored_sex)) + geom_bar()
+```
+As can be seen from our above chart, there is much more data with subjects  exposed to a female doctor. Slightly less than two thirds of participants saw a female doctor. There are a small number of observations that do not have a specified sex. The missing data is small enough that it can be ignored. There are almost an equal number of data points where the doctor displayed an empathetic attitude as a non-empathetic attitude. Within these categories there is a consistent ratio of male to female doctors. Over all, we have a good spread of categorical data that will make analysis easy to do without having to compensate for different sizes of data categories. 
+
+
+
+### Corelation between reported mood and dependent variables
+
+Before being exposed to the stimuli, subjects were asked questions about their current mood. These questions were organized into two categories, positive mood and negative mood. In each question the subject was asked to say on a scale from one to five how strongly their current mood correlated with a positive or negative mood. A composite is made from these results to get a value for the subjects positive mood and negative mood, each valued from 1 to 5. The goal of these questions is to evaluate the correlation between the subjects mood at the time of the test and their responses to the questionnaire. If a significant correlation is found then the data being analyzed should be normalized based on this correlation. 
+
+Below are the plots of the relationship between mood and the subjects answers to the questionnaire. To make the relationship we are trying to establish more visible, a linear model is created and plotted. There are three categories that subjects were asked to report on: The doctors empathy, the doctors warmth, and the doctors competence. For each of these categories we plot the relationship between the positive mood and negative mood of the subject.
+
+#### Corelation between reported mood and empathy results
+```{r}
+mood_plots <- project_data_tidied %>%
+  remove_missing(na.rm=TRUE) %>%
+  subset(select = c(empathy, warmth, competence, positive_mood, negative_mood)) 
+
+ggplot(mood_plots, aes(x = positive_mood, y = empathy)) + 
+  geom_point(aes(color=empathy)) +
+  geom_smooth(method = "lm", se = FALSE)
+
+ggplot(mood_plots, aes(x = negative_mood, y = empathy)) + 
+  geom_point(aes(color=empathy)) +
+  geom_smooth(method = "lm", se = FALSE)
+  
+cor(mood_plots$positive_mood, mood_plots$empathy )
+cor(mood_plots$negative_mood, mood_plots$empathy )
+```
+
+
+#### Corelation between reported mood and warmth results
+```{r}
+mood_plots <- project_data_tidied %>%
+  remove_missing(na.rm=TRUE) %>%
+  subset(select = c(empathy, warmth, competence, positive_mood, negative_mood)) 
+
+
+ggplot(mood_plots, aes(x = positive_mood, y = warmth)) + 
+  geom_point(aes(color=warmth)) +
+  geom_smooth(method = "lm", se = FALSE)
+
+ggplot(mood_plots, aes(x = negative_mood, y = warmth)) + 
+  geom_point(aes(color=warmth)) +
+  geom_smooth(method = "lm", se = FALSE)
+  
+
+cor(mood_plots$positive_mood, mood_plots$warmth )
+cor(mood_plots$negative_mood, mood_plots$warmth )
+```
+
+
+#### Corelation between reported mood and competence results
+```{r}
+mood_plots <- project_data_tidied %>%
+  remove_missing(na.rm=TRUE) %>%
+  subset(select = c(empathy, warmth, competence, positive_mood, negative_mood)) 
+
+
+ggplot(mood_plots, aes(x = positive_mood, y = competence)) + 
+  geom_point(aes(color=warmth)) +
+  geom_smooth(method = "lm", se = FALSE)
+
+ggplot(mood_plots, aes(x = negative_mood, y = competence)) + 
+  geom_point(aes(color=warmth)) +
+  geom_smooth(method = "lm", se = FALSE)
+  
+
+cor(mood_plots$positive_mood, mood_plots$competence )
+cor(mood_plots$negative_mood, mood_plots$competence )
+```
+
+
+As we can see in the plots, for every category that the subjects were asked to evaluate, there is a noticeable correlation between their mood. Subjects scores for doctor empathy, warmth, and competence all seemed to increase with the initial positive mood of the subject. On the other side, all of these categories also had a negative linear correlation with the initial negative mood of the subject. These observations give us insight into the fact that subject responses are biased based on their mood at the time of filling out the questionnaire. This bias is something that may need to be addressed in the analysis.
+
+
+
+
+
+### Data Distribution by Stimuli
+
+Here we examine the correlations between empathy, warmth, and  competence while separating by the different categories of the stimuli. First lets have a look separating the ggparis plot by the sex of the doctor.
+```{r}
+library(GGally)
+repo_boxplot <- project_data_tidied %>%
+  remove_missing(na.rm=TRUE) %>%
+  subset(select = c(empathy, warmth, competence, factored_condemp, factored_sex)) 
+
+ggpairs(repo_boxplot, aes(colour = factored_sex, alpha = 0.7),
+        columns = c("empathy", "warmth", "competence"))
+```
+
+Here we can see the distribution of scores of the different rating categories based on the sex of the doctor. From the graphs we can see that the sex of the doctor did not have much of an impact on the scores in the different categories.
+
+Next we look at the results of the tests with respect to the attitude of the doctor in the stimuli. 
+
+```{r}
+
+ggpairs(repo_boxplot, aes(colour = factored_condemp, alpha = 0.7),
+        columns = c("empathy", "warmth", "competence"))
+```
+
+The attitude of the doctors in the stimuli had a much larger impact on the perceived empathy, warmth, and competence of the doctor than the sex of the doctor did. For empathy, we see a huge spike in low empathy scores for the non-empathetic category, where the empathetic category is more evenly distributed and skewed to the higher end. For warmth, there is a very clear separation of the means of the scores, with non-empathetic stimuli scoring at the low end of the spectrum and empathetic stimuli scoring on the high end. The competence data is less clear than the other two categories. There still appears to be a lower mean for non-empathetic doctors then empathetic ones.
+
+In both of the plots above, the correlation between the different data are listed. The numbers show a strong correlation between empathy and warmth with lesser correlations between each of those two categories and competence.
+
+
+
+
+
+
+
+
+
