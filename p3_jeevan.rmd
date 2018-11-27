@@ -195,11 +195,6 @@ anova(covariate_independence2)
 ```{r}
 # Composite measure (mean) of the warmth values per patient
 project_data_tidied$warmth <- rowMeans(subset(project_data_tidied, select = c(WARM1, WARM2, WARM3, WARM4)), na.rm = TRUE)
-#project_data_tidied$warmth
-covariate_independence3 <- lm(positive_mood ~ warmth, project_data_tidied)
-anova(covariate_independence3)
-covariate_independence4 <- lm(negative_mood ~ warmth, project_data_tidied)
-anova(covariate_independence4)
 ```
 
 ### competence ANCOVA with moods as covariates
@@ -207,9 +202,4 @@ anova(covariate_independence4)
 ```{r}
 # Composite measure (mean) of the competence values per patient
 project_data_tidied$competence <- rowMeans(subset(project_data_tidied, select = c(COMP1, COMP2, COMP3, COMP4, COMP5)), na.rm = TRUE)
-#project_data_tidied$competence
-covariate_independence5 <- lm(positive_mood ~ competence, project_data_tidied)
-anova(covariate_independence5)
-covariate_independence6 <- lm(competence ~ negative_mood, project_data_tidied)
-anova(covariate_independence6)
 ```
