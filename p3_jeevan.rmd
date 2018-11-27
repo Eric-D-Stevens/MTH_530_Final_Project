@@ -161,13 +161,21 @@ Again, without adjusting for mood, we're getting means ands SDs that are close t
 ### Create composite measures for moods
 
 ```{r}
+# convert binary data to 2-level factors
+project_data_tidied$factored_sex<-factor(project_data_tidied$sex, levels = c(0,1), labels = c("Male", "Female"))
+project_data_tidied$factored_condemp<-factor(project_data_tidied$condemp, levels = c(0,1), labels = c("Non-Empathetic", "Empathetic"))
 # creating mood related composite metric based on row-wise means of PANAS positive and negative values using one of the technique shown here: https://stackoverflow.com/questions/9490485/how-can-i-get-the-average-mean-of-selected-columns
 # Composite measure (mean) of the positive mood subscale
 project_data_tidied$positive_mood <- rowMeans(subset(project_data_tidied, select = c(PANASPOS1, PANASPOS2, PANASPOS3, PANASPOS4, PANASPOS5, PANASPOS6, PANASPOS7, PANASPOS8, PANASPOS9, PANASPOS10)), na.rm = TRUE)
-project_data_tidied$positive_mood
+#project_data_tidied$positive_mood
 # Composite measure (mean) of the negative mood subscale
 project_data_tidied$negative_mood <- rowMeans(subset(project_data_tidied, select = c(PANASNEG1, PANASNEG2, PANASNEG3, PANASNEG4, PANASNEG5, PANASNEG6, PANASNEG7, PANASNEG8, PANASNEG9, PANASNEG10)), na.rm = TRUE)
-project_data_tidied$negative_mood
+#project_data_tidied$negative_mood
+# check predictor and covariate independence
+covariate_independence1 <- lm(positive_mood ~ factored_condemp+factored_sex+factored_condemp*factored_sex, project_data_tidied)
+anova(covariate_independence1)
+covariate_independence2 <- lm(negative_mood ~ factored_condemp+factored_sex+factored_condemp*factored_sex, project_data_tidied)
+anova(covariate_independence2)
 ```
 
 ### empathy ANCOVA with moods as covariate
@@ -176,16 +184,13 @@ project_data_tidied$negative_mood
 # Composite measure (mean) of the empathy values per subject
 project_data_tidied$empathy <- rowMeans(subset(project_data_tidied, select = c(CARE1, CARE2, CARE3, CARE4, CARE5, CARE6, CARE7, CARE8, CARE9, CARE10)), na.rm = TRUE)
 #project_data_tidied$empathy
-# perform Levene test
-project_data_tidied$factored_sex<-factor(project_data_tidied$sex, levels = c(0,1), labels = c("Male", "Female"))
+# perform Levene test for perceived empathy vs. sex
 leveneTest(project_data_tidied$empathy, project_data_tidied$factored_sex, center = median)
-project_data_tidied$factored_condemp<-factor(project_data_tidied$condemp, levels = c(0,1), labels = c("Non-Empathetic", "Empathetic"))
+# perform Levene test for perceived empathy vs. non-verbal empathy cues
 leveneTest(project_data_tidied$empathy, project_data_tidied$factored_condemp, center = median)
-# check predictor and covariate independence
-covariate_independence1 <- lm(positive_mood ~ factored_condemp+factored_sex+factored_condemp*factored_sex, project_data_tidied)
-anova(covariate_independence1)
-covariate_independence2 <- lm(negative_mood ~ factored_condemp+factored_sex+factored_condemp*factored_sex, project_data_tidied)
-anova(covariate_independence2)
+# perform ANCOVA for empathy DV
+empathyModel<-aov(empathy ~ factored_condemp + positive_mood + factored_sex + negative_mood, data = project_data_tidied)
+Anova(empathyModel, type="III")
 ```
 
 #### Levene test shows that the variances of perceived empathy vs. sex are similar but the variances between perceived empathy and non-verbal empathetic cues are dissimilar 
@@ -195,6 +200,7 @@ anova(covariate_independence2)
 ```{r}
 # Composite measure (mean) of the warmth values per patient
 project_data_tidied$warmth <- rowMeans(subset(project_data_tidied, select = c(WARM1, WARM2, WARM3, WARM4)), na.rm = TRUE)
+# perform ANCOVA for empathy DV
 warmthModel<-aov(warmth ~ factored_condemp + positive_mood + factored_sex + negative_mood, data = project_data_tidied)
 Anova(warmthModel, type="III")
 ```
@@ -204,4 +210,7 @@ Anova(warmthModel, type="III")
 ```{r}
 # Composite measure (mean) of the competence values per patient
 project_data_tidied$competence <- rowMeans(subset(project_data_tidied, select = c(COMP1, COMP2, COMP3, COMP4, COMP5)), na.rm = TRUE)
+# perform ANCOVA for competence DV
+competenceModel<-aov(competence ~ factored_condemp + positive_mood + factored_sex + negative_mood, data = project_data_tidied)
+Anova(competenceModel, type="III")
 ```
