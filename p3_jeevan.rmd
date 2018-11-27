@@ -182,9 +182,9 @@ leveneTest(project_data_tidied$empathy, project_data_tidied$factored_sex, center
 project_data_tidied$factored_condemp<-factor(project_data_tidied$condemp, levels = c(0,1), labels = c("Non-Empathetic", "Empathetic"))
 leveneTest(project_data_tidied$empathy, project_data_tidied$factored_condemp, center = median)
 # check predictor and covariate independence
-covariate_independence1 <- lm(positive_mood ~ factored_condemp, project_data_tidied)
+covariate_independence1 <- lm(positive_mood ~ factored_condemp+factored_sex+factored_condemp*factored_sex, project_data_tidied)
 anova(covariate_independence1)
-covariate_independence2 <- lm(negative_mood ~ factored_condemp, project_data_tidied)
+covariate_independence2 <- lm(negative_mood ~ factored_condemp+factored_sex+factored_condemp*factored_sex, project_data_tidied)
 anova(covariate_independence2)
 ```
 
@@ -195,6 +195,8 @@ anova(covariate_independence2)
 ```{r}
 # Composite measure (mean) of the warmth values per patient
 project_data_tidied$warmth <- rowMeans(subset(project_data_tidied, select = c(WARM1, WARM2, WARM3, WARM4)), na.rm = TRUE)
+warmthModel<-aov(warmth ~ factored_condemp + positive_mood + factored_sex + negative_mood, data = project_data_tidied)
+Anova(warmthModel, type="III")
 ```
 
 ### competence ANCOVA with moods as covariates
