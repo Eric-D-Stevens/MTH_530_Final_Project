@@ -1,0 +1,101 @@
+---
+title: "Project Adjusted Means"
+author: "Alex Salem"
+date: "December 2, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Loading libraries
+```{r}
+library(tidyverse)
+library(skimr)
+library(readxl) # to read in the xlsx file
+library(naniar) #for replacing 6 with NA
+# install packages needed for ANCOVA analysis as per the "Discovering Statistics Using R" book by Field, Miles and Field
+#install.packages("car"); install.packages("akima"); install.packages("compute.es"); install.packages ("effects");install.packages("ggplot2");install.packages("multcomp");install.packages("pastecs"); install.packages("WRS", repos="http://R-Forge.R-project.org")
+# load ANCOVA relate libraries after installing them
+library(car); # for Levene’s test, Type III sums of squares
+library(compute.es); # for effect sizes
+library(effects); # for adjusted means
+library(ggplot2); # for graphs
+library(multcomp); # for post hoc tests
+library(pastecs); # for descriptive statistics
+library(WRS) # for robust tests
+library(phia)
+```
+
+
+## Loading and tidying data
+```{r}
+project_data <- read_excel("raw_data.xlsx", sheet = 1)
+
+project_data_tidied <- project_data %>% 
+  dplyr::select(-X__1, -X__2) %>% 
+  replace_with_na_at(.vars = c("CARE1", "CARE2", "CARE3", "CARE4", "CARE5", "CARE6", "CARE7", "CARE8", "CARE9", "CARE10"),
+                     condition = ~.x == 6)
+project_data_tidied
+```
+
+## Converting data to factors, composites
+```{r}
+# convert binary data to 2-level factors
+project_data_tidied$factored_sex<-factor(project_data_tidied$sex, levels = c(0,1), labels = c("Male", "Female"))
+
+project_data_tidied$factored_condemp<-factor(project_data_tidied$condemp, levels = c(0,1), labels = c("Non-Empathetic", "Empathetic"))
+project_data_tidied$factored_condcoat<-factor(project_data_tidied$condcoat, levels = c(0,1), labels = c("No Coat", "Coat"))
+# creating mood related composite metric based on row-wise means of PANAS positive and negative values using one of the technique shown here: https://stackoverflow.com/questions/9490485/how-can-i-get-the-average-mean-of-selected-columns
+# Composite measure (mean) of the positive mood subscale
+project_data_tidied$positive_mood <- rowMeans(subset(project_data_tidied, select = c(PANASPOS1, PANASPOS2, PANASPOS3, PANASPOS4, PANASPOS5, PANASPOS6, PANASPOS7, PANASPOS8, PANASPOS9, PANASPOS10)), na.rm = TRUE)
+#project_data_tidied$positive_mood
+# Composite measure (mean) of the negative mood subscale
+project_data_tidied$negative_mood <- rowMeans(subset(project_data_tidied, select = c(PANASNEG1, PANASNEG2, PANASNEG3, PANASNEG4, PANASNEG5, PANASNEG6, PANASNEG7, PANASNEG8, PANASNEG9, PANASNEG10)), na.rm = TRUE)
+#project_data_tidied$negative_mood
+```
+
+
+```{r}
+project_data_tidied$empathy <- rowMeans(subset(project_data_tidied, select = c(CARE1, CARE2, CARE3, CARE4, CARE5, CARE6, CARE7, CARE8, CARE9, CARE10)), na.rm = TRUE)
+
+```
+
+## Replicating adjusted means in paper
+
+"Adjusting for mood, we found a significant main effect of nonverbal behavior on ratings of empathy such that participants rated physicians displaying empathic nonverbal behavior as more empathic (M = 3.29, SD = 1.15) than physicians displaying unempathic nonverbal behavior (M = 1.86, SD = .93, F(1,1362) = 568.49, p < .001, η2 p = .30; see Fig 3)."
+
+```{r}
+lin_model <- lm(empathy ~ factored_condemp + positive_mood, data = project_data_tidied)
+test <- Anova(lin_model, type = 2)
+test
+
+phia::interactionMeans(lin_model)
+```
+---
+
+"There was also a significant, albeit very small, main effect of subject gender such that male participants rated physicians in both conditions as more empathic (M = 2.70, SD = 1.21) than the female participants (M = 2.49, SD = 1.30, F(1,1362) = 6.60, p = .01, η2 p = .005)."
+
+```{r}
+lin_model_2 <- lm(empathy ~ factored_sex, data = project_data_tidied)
+test_2 <- Anova(lin_model_2, type = 2)
+test_2
+
+phia::interactionMeans(lin_model_2)
+```
+
+---
+
+"There was a marginally significant interaction of nonverbal behavior with participant gender (F(1,1362) = 3.00, p = .084, η2 p = .002) such that in the unempathic condition, women perceived physicians as less empathic (M = 1.73, SD = .88) than men (M = 2.05, SD = .98, F(679) = 13.48, p < .001, η2 p = .02)."
+
+```{r}
+lin_model_3 <- lm(empathy ~ factored_sex*factored_condemp, data = project_data_tidied)
+test_3 <- Anova(lin_model_2, type = 2)
+test_3
+
+phia::interactionMeans(lin_model_3)
+```
+
+---
+
