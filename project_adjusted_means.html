@@ -266,6 +266,8 @@ project_data_tidied$negative_mood &lt;- rowMeans(subset(project_data_tidied, sel
 </div>
 <div id="replicating-adjusted-means-in-paper" class="section level2">
 <h2>Replicating adjusted means in paper</h2>
+<div id="empathy" class="section level4">
+<h4>Empathy</h4>
 <p>“Adjusting for mood, we found a significant main effect of nonverbal behavior on ratings of empathy such that participants rated physicians displaying empathic nonverbal behavior as more empathic (M = 3.29, SD = 1.15) than physicians displaying unempathic nonverbal behavior (M = 1.86, SD = .93, F(1,1362) = 568.49, p &lt; .001, η2 p = .30; see Fig 3).”</p>
 <pre class="r"><code>lin_model &lt;- lm(empathy ~ factored_condemp + positive_mood, data = project_data_tidied)
 test &lt;- Anova(lin_model, type = 2)
@@ -286,7 +288,7 @@ test</code></pre>
 <hr />
 <p>“There was also a significant, albeit very small, main effect of subject gender such that male participants rated physicians in both conditions as more empathic (M = 2.70, SD = 1.21) than the female participants (M = 2.49, SD = 1.30, F(1,1362) = 6.60, p = .01, η2 p = .005).”</p>
 <pre class="r"><code>lin_model_2 &lt;- lm(empathy ~ factored_sex, data = project_data_tidied)
-test_2 &lt;- Anova(lin_model_2, type = 2)
+test_2 &lt;- Anova(lin_model_2, type = 2, adjusted = &quot;bonferroni&quot;)
 test_2</code></pre>
 <pre><code>## Anova Table (Type II tests)
 ## 
@@ -296,21 +298,31 @@ test_2</code></pre>
 ## Residuals    2179.32 1361                    
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</code></pre>
-<pre class="r"><code>phia::interactionMeans(lin_model_2)</code></pre>
+<pre class="r"><code>phia::interactionMeans(lin_model_2, adjustment = &quot;bonferroni&quot;)</code></pre>
 <pre><code>##   factored_sex adjusted mean std. error
 ## 1         Male      2.704408 0.05445462
 ## 2       Female      2.487597 0.04410946</code></pre>
+<pre class="r"><code>project_data_tidied %&gt;% 
+  count(factored_sex)</code></pre>
+<pre><code>## # A tibble: 3 x 2
+##   factored_sex     n
+##   &lt;fct&gt;        &lt;int&gt;
+## 1 Male           541
+## 2 Female         823
+## 3 &lt;NA&gt;            13</code></pre>
 <hr />
 <p>“There was a marginally significant interaction of nonverbal behavior with participant gender (F(1,1362) = 3.00, p = .084, η2 p = .002) such that in the unempathic condition, women perceived physicians as less empathic (M = 1.73, SD = .88) than men (M = 2.05, SD = .98, F(679) = 13.48, p &lt; .001, η2 p = .02).”</p>
 <pre class="r"><code>lin_model_3 &lt;- lm(empathy ~ factored_sex*factored_condemp, data = project_data_tidied)
-test_3 &lt;- Anova(lin_model_2, type = 2)
+test_3 &lt;- Anova(lin_model_3, type = 2, adjusted = &quot;bonferroni&quot;)
 test_3</code></pre>
 <pre><code>## Anova Table (Type II tests)
 ## 
 ## Response: empathy
-##               Sum Sq   Df F value   Pr(&gt;F)   
-## factored_sex   15.33    1  9.5719 0.002016 **
-## Residuals    2179.32 1361                    
+##                                Sum Sq   Df  F value    Pr(&gt;F)    
+## factored_sex                    13.51    1  12.4649 0.0004285 ***
+## factored_condemp               701.83    1 647.5253 &lt; 2.2e-16 ***
+## factored_sex:factored_condemp    4.51    1   4.1625 0.0415211 *  
+## Residuals                     1472.98 1359                       
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</code></pre>
 <pre class="r"><code>phia::interactionMeans(lin_model_3)</code></pre>
@@ -320,6 +332,45 @@ test_3</code></pre>
 ## 3         Male       Empathetic      3.341403 0.06289456
 ## 4       Female       Empathetic      3.254594 0.05141578</code></pre>
 <hr />
+</div>
+<div id="warmth" class="section level4">
+<h4>Warmth</h4>
+<p>“Adjusting for mood, we found a significant main effect of nonverbal behavior on ratings of warmth such that participants rated physicians displaying empathic nonverbal behavior as more warm (M = 3.73, SD = .93) than physicians displaying unempathic nonverbal behavior (M = 2.28, SD = .98, F(1,1362) = 674.49, p &lt; .001, η2 p = .33).”</p>
+<pre class="r"><code>project_data_tidied$warmth &lt;- rowMeans(subset(project_data_tidied, select = c(WARM1, WARM2, WARM3, WARM4)), na.rm = TRUE)</code></pre>
+<pre class="r"><code>lin_model_4 &lt;- lm(warmth ~ factored_condemp, data = project_data_tidied)
+Anova(lin_model_4, type = 2)</code></pre>
+<pre><code>## Anova Table (Type II tests)
+## 
+## Response: warmth
+##                   Sum Sq   Df F value    Pr(&gt;F)    
+## factored_condemp  715.22    1  787.63 &lt; 2.2e-16 ***
+## Residuals        1243.14 1369                      
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</code></pre>
+<pre class="r"><code>interactionMeans(lin_model_4)</code></pre>
+<pre><code>##   factored_condemp adjusted mean std. error
+## 1   Non-Empathetic      2.282651 0.03643590
+## 2       Empathetic      3.727196 0.03635626</code></pre>
+<p>“We also found a significant interaction of nonverbal behavior with participant gender (F(1,1362) = 4.88, p = .027, η2 p = .004) such that in the unempathic condition, women perceived physicians as less warm (M = 2.20, SD = 0.98) than men (M = 2.42, SD = .95, F(1,679) = 4.46, p = .035, η2 p = .007).”</p>
+<pre class="r"><code>lin_model_5 &lt;- lm(warmth ~ factored_sex*factored_condemp , data = project_data_tidied)
+Anova(lin_model_5, type = 2)</code></pre>
+<pre><code>## Anova Table (Type II tests)
+## 
+## Response: warmth
+##                                Sum Sq   Df  F value    Pr(&gt;F)    
+## factored_sex                     2.28    1   2.5318  0.111808    
+## factored_condemp               707.22    1 786.1734 &lt; 2.2e-16 ***
+## factored_sex:factored_condemp    6.09    1   6.7731  0.009355 ** 
+## Residuals                     1222.52 1359                       
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</code></pre>
+<pre class="r"><code>interactionMeans(lin_model_5)</code></pre>
+<pre><code>##   factored_sex factored_condemp adjusted mean std. error
+## 1         Male   Non-Empathetic      2.418539 0.05804470
+## 2       Female   Non-Empathetic      2.197538 0.04667057
+## 3         Male       Empathetic      3.694139 0.05740330
+## 4       Female       Empathetic      3.746545 0.04684101</code></pre>
+</div>
 </div>
 
 

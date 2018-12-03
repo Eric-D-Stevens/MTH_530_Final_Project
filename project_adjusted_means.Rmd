@@ -64,6 +64,7 @@ project_data_tidied$empathy <- rowMeans(subset(project_data_tidied, select = c(C
 
 ## Replicating adjusted means in paper
 
+#### Empathy
 "Adjusting for mood, we found a significant main effect of nonverbal behavior on ratings of empathy such that participants rated physicians displaying empathic nonverbal behavior as more empathic (M = 3.29, SD = 1.15) than physicians displaying unempathic nonverbal behavior (M = 1.86, SD = .93, F(1,1362) = 568.49, p < .001, η2 p = .30; see Fig 3)."
 
 ```{r}
@@ -79,11 +80,17 @@ phia::interactionMeans(lin_model)
 
 ```{r}
 lin_model_2 <- lm(empathy ~ factored_sex, data = project_data_tidied)
-test_2 <- Anova(lin_model_2, type = 2)
+test_2 <- Anova(lin_model_2, type = 2, adjusted = "bonferroni")
 test_2
 
-phia::interactionMeans(lin_model_2)
+phia::interactionMeans(lin_model_2, adjustment = "bonferroni")
 ```
+
+```{r}
+project_data_tidied %>% 
+  count(factored_sex)
+```
+
 
 ---
 
@@ -91,11 +98,36 @@ phia::interactionMeans(lin_model_2)
 
 ```{r}
 lin_model_3 <- lm(empathy ~ factored_sex*factored_condemp, data = project_data_tidied)
-test_3 <- Anova(lin_model_2, type = 2)
+test_3 <- Anova(lin_model_3, type = 2, adjusted = "bonferroni")
 test_3
 
 phia::interactionMeans(lin_model_3)
 ```
 
 ---
+
+#### Warmth
+"Adjusting for mood, we found a significant main effect of nonverbal behavior on ratings of warmth such that participants rated physicians displaying empathic nonverbal behavior as more warm (M = 3.73, SD = .93) than physicians displaying unempathic nonverbal behavior (M = 2.28, SD = .98, F(1,1362) = 674.49, p < .001, η2 p = .33)."
+
+```{r}
+project_data_tidied$warmth <- rowMeans(subset(project_data_tidied, select = c(WARM1, WARM2, WARM3, WARM4)), na.rm = TRUE)
+```
+
+```{r}
+lin_model_4 <- lm(warmth ~ factored_condemp, data = project_data_tidied)
+Anova(lin_model_4, type = 2)
+
+interactionMeans(lin_model_4)
+```
+
+"We also found a significant interaction of nonverbal behavior with participant gender (F(1,1362) = 4.88, p = .027, η2 p = .004) such that in the unempathic condition, women perceived physicians as less warm (M = 2.20, SD = 0.98) than men (M = 2.42, SD = .95, F(1,679) = 4.46, p = .035, η2 p = .007)."
+
+```{r}
+lin_model_5 <- lm(warmth ~ factored_sex*factored_condemp , data = project_data_tidied)
+Anova(lin_model_5, type = 2)
+
+interactionMeans(lin_model_5)
+```
+
+
 
