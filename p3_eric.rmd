@@ -162,8 +162,10 @@ Again, without adjusting for mood, we're getting means ands SDs that are close t
 
 ```{r}
 # convert binary data to 2-level factors
-project_data_tidied$factored_sex<-factor(project_data_tidied$sex, levels = c(0,1), labels = c("Male", "Female"))
+factor
+project_data_tidied$factored_sex<-factor(project_data_tidied$sex, levels = c(0,1), labels = c("Male", "Female"), exclude = NA)
 project_data_tidied$factored_condemp<-factor(project_data_tidied$condemp, levels = c(0,1), labels = c("Non-Empathetic", "Empathetic"))
+project_data_tidied$factored_condcoat<-factor(project_data_tidied$condcoat, levels = c(0,1), labels = c("No-White-Coat", "White-Coat"))
 # creating mood related composite metric based on row-wise means of PANAS positive and negative values using one of the technique shown here: https://stackoverflow.com/questions/9490485/how-can-i-get-the-average-mean-of-selected-columns
 # Composite measure (mean) of the positive mood subscale
 project_data_tidied$positive_mood <- rowMeans(subset(project_data_tidied, select = c(PANASPOS1, PANASPOS2, PANASPOS3, PANASPOS4, PANASPOS5, PANASPOS6, PANASPOS7, PANASPOS8, PANASPOS9, PANASPOS10)), na.rm = TRUE)
@@ -225,9 +227,40 @@ glimpse(project_data_tidied)
 
 First lets have a look at the break down of our stimuli. The stimuli consist of two major categories, sex of the doctor, and attitude of the doctor. We are evaluating these categories each as binary options. The doctor that the subject is exposed to is either male or female and the attitude of that doctor is either empathetic or non-empathetic. Below is a plot of the relative amount of each of the four resulting categories that we have for our data.
 ```{r}
-ggplot(project_data_tidied, aes(x=factored_condemp, fill = factored_sex)) + geom_bar()
+ggplot(project_data_tidied, aes(x=factored_sex, fill = factored_sex)) + geom_bar()
+project_data_tidied %>% 
+  group_by(factored_sex) %>% 
+  summarise(n())
+
 ```
 As can be seen from our above chart, there is much more data with subjects  exposed to a female doctor. Slightly less than two thirds of participants saw a female doctor. There are a small number of observations that do not have a specified sex. The missing data is small enough that it can be ignored. There are almost an equal number of data points where the doctor displayed an empathetic attitude as a non-empathetic attitude. Within these categories there is a consistent ratio of male to female doctors. Over all, we have a good spread of categorical data that will make analysis easy to do without having to compensate for different sizes of data categories. 
+
+```{r}
+unifactors <- unite(project_data_tidied, factors, c(factored_condcoat,factored_condemp))
+
+study_1 <- unifactors %>% filter(study==1)
+study_2 <- unifactors %>% filter(study!=1)
+
+
+ggplot(study_1, aes(x=factors, fill = factors)) + geom_bar() +
+  ggtitle("Study 1")
+summarise(study_1, n())
+
+ggplot(study_2, aes(x=factors, fill = factors)) + geom_bar() +
+  ggtitle("Study 2") + labs(y= " ", x = " ")
+summarise(study_2, n())
+
+```
+
+
+```{r}
+unifactors$study[unifactors$study==3] <- 2
+unifactors$study[unifactors$study==4] <- 2
+
+ggplot(unifactors, aes(x=factors, fill=factors)) +
+  facet_wrap('study') +
+  geom_bar()
+```
 
 
 
@@ -243,12 +276,12 @@ mood_plots <- project_data_tidied %>%
   remove_missing(na.rm=TRUE) %>%
   subset(select = c(empathy, warmth, competence, positive_mood, negative_mood)) 
 
-ggplot(mood_plots, aes(x = positive_mood, y = empathy)) + 
-  geom_point(aes(color=empathy)) +
+mood_emp_pos <- ggplot(mood_plots, aes(x = positive_mood, y = empathy)) + 
+  geom_point() +
   geom_smooth(method = "lm", se = FALSE)
 
-ggplot(mood_plots, aes(x = negative_mood, y = empathy)) + 
-  geom_point(aes(color=empathy)) +
+mood_emp_neg <- ggplot(mood_plots, aes(x = negative_mood, y = empathy)) + 
+  geom_point() +
   geom_smooth(method = "lm", se = FALSE)
   
 cor(mood_plots$positive_mood, mood_plots$empathy )
@@ -263,12 +296,12 @@ mood_plots <- project_data_tidied %>%
   subset(select = c(empathy, warmth, competence, positive_mood, negative_mood)) 
 
 
-ggplot(mood_plots, aes(x = positive_mood, y = warmth)) + 
-  geom_point(aes(color=warmth)) +
+mood_wrm_pos <- ggplot(mood_plots, aes(x = positive_mood, y = warmth)) + 
+  geom_point() +
   geom_smooth(method = "lm", se = FALSE)
 
-ggplot(mood_plots, aes(x = negative_mood, y = warmth)) + 
-  geom_point(aes(color=warmth)) +
+mood_wrm_neg <- ggplot(mood_plots, aes(x = negative_mood, y = warmth)) + 
+  geom_point() +
   geom_smooth(method = "lm", se = FALSE)
   
 
@@ -284,18 +317,31 @@ mood_plots <- project_data_tidied %>%
   subset(select = c(empathy, warmth, competence, positive_mood, negative_mood)) 
 
 
-ggplot(mood_plots, aes(x = positive_mood, y = competence)) + 
-  geom_point(aes(color=warmth)) +
+mood_cmp_pos <- ggplot(mood_plots, aes(x = positive_mood, y = competence)) + 
+  geom_point() +
   geom_smooth(method = "lm", se = FALSE)
 
-ggplot(mood_plots, aes(x = negative_mood, y = competence)) + 
-  geom_point(aes(color=warmth)) +
+mood_cmp_neg <- ggplot(mood_plots, aes(x = negative_mood, y = competence)) + 
+  geom_point() +
   geom_smooth(method = "lm", se = FALSE)
   
 
 cor(mood_plots$positive_mood, mood_plots$competence )
 cor(mood_plots$negative_mood, mood_plots$competence )
 ```
+
+```{r}
+library(ggpubr)
+theme_set(theme_pubr())
+mood_relationships <- ggarrange(mood_emp_pos, mood_wrm_pos, mood_cmp_pos,
+                                mood_emp_neg, mood_wrm_neg,  mood_cmp_neg,
+                                ncol = 3, nrow = 2)
+mood_relationships
+```
+
+figure <- ggarrange(bxp, dp, lp,
+                    labels = c("A", "B", "C"),
+                    ncol = 2, nrow = 2)
 
 
 As we can see in the plots, for every category that the subjects were asked to evaluate, there is a noticeable correlation between their mood. Subjects scores for doctor empathy, warmth, and competence all seemed to increase with the initial positive mood of the subject. On the other side, all of these categories also had a negative linear correlation with the initial negative mood of the subject. These observations give us insight into the fact that subject responses are biased based on their mood at the time of filling out the questionnaire. This bias is something that may need to be addressed in the analysis.
@@ -305,6 +351,28 @@ As we can see in the plots, for every category that the subjects were asked to e
 
 
 ### Data Distribution by Stimuli
+
+```{r}
+
+repo_boxplot <- project_data_tidied %>%
+  remove_missing(na.rm=TRUE) %>%
+  subset(select = c(empathy, warmth, competence)) 
+
+project_data_tidied %>% 
+  subset(select = c(empathy, warmth, competence)) %>%
+  skim()
+
+project_data_tidied %>% 
+  subset(select = c(negative_mood,positive_mood)) %>%
+  skim()
+
+```
+
+
+
+
+
+
 
 Here we examine the correlations between empathy, warmth, and  competence while separating by the different categories of the stimuli. First lets have a look separating the ggparis plot by the sex of the doctor.
 ```{r}
@@ -332,6 +400,9 @@ The attitude of the doctors in the stimuli had a much larger impact on the perce
 In both of the plots above, the correlation between the different data are listed. The numbers show a strong correlation between empathy and warmth with lesser correlations between each of those two categories and competence.
 
 
+```{r}
+
+```
 
 
 
