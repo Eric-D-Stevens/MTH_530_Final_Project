@@ -82,7 +82,7 @@ Didn't end up using this for calculating the means.
 
 
 ```{r}
-lin_model_empathy_condemp <- lm(empathy ~ factored_condemp, data = project_data_tidied)
+lin_model_empathy_condemp <- lm(empathy ~ factored_condemp + positive_mood, data = project_data_tidied)
 
 test <- Anova(lin_model_empathy_condemp, type = 2, adjustment = "bonferroni")
 test

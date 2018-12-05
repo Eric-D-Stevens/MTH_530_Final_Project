@@ -199,7 +199,7 @@ Anova(lin_model_empathy_full, type = 2, adjustment = &quot;bonferroni&quot;)</co
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</code></pre>
 <p>Didn’t end up using this for calculating the means.</p>
 <p><strong>“Adjusting for mood, we found a significant main effect of nonverbal behavior on ratings of empathy such that participants rated physicians displaying empathic nonverbal behavior as more empathic (M = 3.29, SD = 1.15) than physicians displaying unempathic nonverbal behavior (M = 1.86, SD = .93, F(1,1362) = 568.49, p &lt; .001, η2_p = .30; see Fig 3).”</strong></p>
-<pre class="r"><code>lin_model_empathy_condemp &lt;- lm(empathy ~ factored_condemp, data = project_data_tidied)
+<pre class="r"><code>lin_model_empathy_condemp &lt;- lm(empathy ~ factored_condemp + positive_mood, data = project_data_tidied)
 
 test &lt;- Anova(lin_model_empathy_condemp, type = 2, adjustment = &quot;bonferroni&quot;)
 test</code></pre>
@@ -207,15 +207,16 @@ test</code></pre>
 ## 
 ## Response: empathy
 ##                   Sum Sq   Df F value    Pr(&gt;F)    
-## factored_condemp  705.08    1  644.55 &lt; 2.2e-16 ***
-## Residuals        1497.55 1369                      
+## factored_condemp  625.11    1  614.11 &lt; 2.2e-16 ***
+## positive_mood     108.34    1  106.44 &lt; 2.2e-16 ***
+## Residuals        1388.41 1364                      
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</code></pre>
 <p>Here, we get <span class="math inline">\(p &lt; .001\)</span> (indicated by the triple star), so that value is verified. Our f-statistic is off–we get 644.55 instead of 568.49.</p>
 <pre class="r"><code>interactionMeans(lin_model_empathy_condemp, adjustment = &quot;bonferroni&quot;)</code></pre>
 <pre><code>##   factored_condemp adjusted mean std. error
-## 1   Non-Empathetic      1.855490 0.04004948
-## 2       Empathetic      3.289772 0.03984552</code></pre>
+## 1   Non-Empathetic      1.891777 0.03881284
+## 2       Empathetic      3.254769 0.03867004</code></pre>
 <p>We are getting close to their mean for each of these groups. Here, we have the standard error and not the standard deviation. We were not able to replicate their standard deviation, even with manipulation of this standard error.</p>
 <pre class="r"><code>project_data_tidied %&gt;% 
   count(factored_condemp)</code></pre>
@@ -414,9 +415,9 @@ Anova(lin_model_competence_neg_mood, type = 2, adjustment = &quot;bonferroni&quo
 <pre class="r"><code>emp_mean &lt;- as.data.frame(interactionMeans(lin_model_empathy_condemp, adjustment = &quot;bonferroni&quot;))[1,2]
 emp_error &lt;- as.data.frame(interactionMeans(lin_model_empathy_condemp, adjustment = &quot;bonferroni&quot;))[2,2] 
 emp_mean</code></pre>
-<pre><code>## [1] 1.85549</code></pre>
+<pre><code>## [1] 1.891777</code></pre>
 <pre class="r"><code>emp_error</code></pre>
-<pre><code>## [1] 3.289772</code></pre>
+<pre><code>## [1] 3.254769</code></pre>
 <pre class="r"><code>warmth_mean&lt;- as.data.frame(interactionMeans(lin_model_warmth_condemp, adjustment = &quot;bonferroni&quot;))[1,2]
 warmth_error&lt;- as.data.frame(interactionMeans(lin_model_warmth_condemp, adjustment = &quot;bonferroni&quot;))[2,2]
 warmth_mean</code></pre>
