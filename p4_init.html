@@ -859,17 +859,19 @@ test_condemp_gender_interaction</code></pre>
 ## Residuals                     1472.98 1359                       
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</code></pre>
+<p>Our p-value for the interaction is 0.04, which is actually lower than theirs. Our p-value for sex is .0004, which is within their stated range, p&lt;.001.</p>
 <pre class="r"><code>phia::interactionMeans(lin_model_condemp_gender_interaction, adjustment = &quot;bonferroni&quot;)</code></pre>
 <pre><code>##   factored_condemp factored_sex adjusted mean std. error
 ## 1   Non-Empathetic         Male      2.048255 0.06383334
 ## 2       Empathetic         Male      3.341403 0.06289456
 ## 3   Non-Empathetic       Female      1.726170 0.05122870
 ## 4       Empathetic       Female      3.254594 0.05141578</code></pre>
+<p>We get means close to those reported by the paper for un-empathetic conditions–1.77 for females and 1.98 for males.</p>
 <hr />
 </div>
 <div id="warmth" class="section level4">
 <h4>Warmth</h4>
-<p><strong>“Adjusting for mood, we found a significant main effect of nonverbal behavior on ratings of warmth such that participants rated physicians displaying empathic nonverbal behavior as more warm (M = 3.73, SD = .93) than physicians displaying unempathic nonverbal behavior (M = 2.28, SD = .98, F(1,1362) = 674.49, p &lt; .001, η2 p = .33).”</strong></p>
+<p><strong>“Adjusting for mood, we found a significant main effect of nonverbal behavior on ratings of warmth such that participants rated physicians displaying empathic nonverbal behavior as more warm (M = 3.73, SD = .93) than physicians displaying unempathic nonverbal behavior (M = 2.28, SD = .98, F(1,1362) = 674.49, p &lt; .001, η2_p = .33).”</strong></p>
 <pre class="r"><code>lin_model_warmth_condemp &lt;- lm(warmth ~ factored_condemp + positive_mood, data = project_data_tidied)
 Anova(lin_model_warmth_condemp, type = 2, adjustment = &quot;bonferroni&quot;)</code></pre>
 <pre><code>## Anova Table (Type II tests)
