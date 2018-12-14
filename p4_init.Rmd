@@ -5,9 +5,82 @@ output: html_document
 author: "Jeevan Bihari, Eric Stevens, Alexandra Salem"
 ---
 
-#EDA
 
-###Loading libraries
+#### Paper: 
+
+Kraft-Todd GT, Reinero DA, Kelley JM,
+Heberlein AS, Baer L, Riess H (2017) Empathic
+nonverbal behavior increases ratings of both
+warmth and competence in a medical context.
+PLoS ONE 12(5): e0177758. https://doi.org/
+10.1371/journal.pone.0177758
+
+#### Paper Summary:
+
+In this paper, the researchers explore the effect of empthetic non-verbal 
+communication on patient perception of clinitian empathy, warmth and 
+competence. The goal of the project is to show that when a clinitian 
+displays empathetic body language, patients will precieve the clinitian as
+having more empathy, warmth, and importantly competence than a clinitian 
+does not display these characteristics. The key here is show that, in a
+clinical setting, perceptions of empathy are not negativly correlated with 
+perceptions of competence as they have been shown to be in other settings.
+
+The data consisted consisted of responses to a survey performed on Amazon 
+Mechanical Turk. In this survey subjects were asked to report on their 
+emotional state coming into the experiment using the PANAS scale. They were 
+then shown a series of 6 photographs showing a clinitian that is 
+demonstrating either empathetic non-verbal behavior (leaning in, open 
+chested, concerned look on face) or unempathetic non-verbal behavior (
+leaned back, arms crossed, disintrested look on face) and each wearing 
+either the traditional physican white coat or more regular clothing. This
+made four different types of pictures that could be shown. Each subject saw 
+either 6 empethetic pictures or 6 unempethetic pictures, never a mix. In 
+each of the pictures the clinician would either be wearing a white coat or
+not, never both.Each of these pictures was acompanied with 1 to 3 lines of 
+script that mimiced a conversation between a doctor and a patient where the
+doctor was recomending surgery over medical treatment. Durring this time, 
+subjects in the experiment were asked to pretend that they were the patient. 
+After the pictures and scripts, patients were asked to fill out a survey rating 
+the  doctors empathy, warmth, and competence. The survey used for empathy was 
+the CARE scale and Fiske’s stereotype content model was used to measure 
+both warmth and competence. The data that was recorded was the category of 
+non-verbal behavior a subject was exposed to (empathetic / unempethetic), 
+the responces to the PANAS, CARE, and Fiske's surveys, and the subjects 
+sex.
+
+The indepentent variables of interest in the experiment were the category of 
+non-verbal behavior a subject was exposed to (empathetic / unempethetic),
+whether the clinician was wearing a white coat or not, and the sex of the 
+subject taking the test. **The experimenters realized that the white coat 
+made no statistical difference and threw it out of the experiment.** The 
+dependent variables in the experiment were scores derived from subject 
+responses to the CARE survey and the Fiske’s stereotype content model survey.
+These were compiled and normalized to give a score of between 1 and 5 for 
+each category, empathy, warmth, and competence. Finally, the covariants in 
+the experement were the emotional states of the participants coming into the
+experiment as measured through the positive and negative PANAS survey.
+
+The researchers come to the conclusion that there is a strong corelation 
+between empathetic non-verbal behavior in subject precieved empathy and warmth.
+
+
+
+
+## Exploratory Data Analysis Report
+
+### A discussion of issues uncovered in your data quality review. 
+
+We had a few small issues that came up in our data review:
+
+1. We had two columns attached to our data that were not labeled, and mostly had `NA` values. These were labeled as "X__1" and "X__2" by R. We wanted to determine if they were used in the paper somewhere. We went through the means and Ns in the paper, to determine if the N or mean of the unlabeled columns matched something in the paper. We did not find the Ns or means of those two columns anywhere in the paper. And, we were able to recreate the results in the paper without using those two unlabeled columns. Thus, we concluded that we should just remove those columns.
+
+2. For some variables, it was a little unclear exactly which question in the questionaires they were attached to. Specifically for the WARM questions: `WARM1|WARM2|WARM4|WARM3`. There was not any direct reference from data description to numbered column names and therefore we depended on the assumption that column numbering corresponds to the order in which questions are laid out in the questionnaire.  Therefore, in the situation mentioned above we put the question that comes fourth in the warmth section in `WARM4` and the question that comes third in `WARM3` even though these columns are out of order in the dataset. Additionally, we found that this does not matter in the end as well, since we end up taking a composite of these scores, and do not look at individual scores within categories.
+
+3. We had to replace certain values with `NA`. The categories `WARM#` and `COMP#` have options 0-4 and a 'does not apply' option in the questionnaire. However, in the raw data only numbers 1-5 appear and there are many blank spots. This led us to believe that it is likely that the the values 0-4 in the questionnaire map to values 1-5 in the raw data and the 'does not apply' option is mapped to an empty cell in the raw data. In comparison, the `CARE` columns used 1-6, where 6 was "does not apply". Thus, we changed the 6 in those columns to `NA` to match the `WARM` and `COMP` categories.
+
+
+### Loading libraries
 ```{r warning=FALSE,message=FALSE}
 library(tidyverse)
 library(skimr)
@@ -24,7 +97,10 @@ library(multcomp); # for post hoc tests
 library(pastecs); # for descriptive statistics
 library(WRS) # for robust tests
 library(phia)
+library(GGally)
+library(ggpubr)
 ```
+
 
 ```{r}
 project_data <- read_excel("raw_data.xlsx", sheet = 1)
@@ -59,33 +135,174 @@ project_data_tidied$empathy <- rowMeans(subset(project_data_tidied, select = c(C
 
 
 project_data_tidied <- project_data_tidied[!is.na(project_data_tidied$factored_sex), ]
+project_data_tidied
 ```
 
-### Exploring study numbers
-The first run had N=194 participants, all wore white coats, empathetic and not empathetic. This corresponds to study 1. The second run had N=1177 participants, mix of coat/no coat, empathetic/not empathetic in each study. This corresponds to studies 2-4.
+### Examination of tidied data
+
+#### Independent variables
+
+While the difference in the response between the sexes was not the main 
+subject of the experiment it was discussed in detail. Lets first explor the 
+gender breakdown of the study participants.
+
 ```{r}
-project_data %>% 
-  dplyr::select(subid, condcoat, condemp, study) %>% 
-  count(study)
-```
+ggplot(project_data_tidied, aes(x=factored_sex, fill = factored_sex)) + geom_bar()
+project_data_tidied %>% 
+  group_by(factored_sex) %>% 
+  summarise(n())
 
-### Exploring missing columns
+```
+As we can see there are a much larger number of females in our data than 
+males. This is important in interpreting overall results. Any time we do 
+an analysis that does not explicitly seperate the results based on sex will
+have an bias towards female responses, since they are over represented and 
+not controlled for in this study.
+
+Next lets move on to the stimuli the subjects were exposed to. Although this 
+was not discussed earlier, the paper states that the data was collected in 
+two seperate studies. The first run had N=194 participants, all wore white 
+coats, empathetic and not empathetic. This corresponds to study 1. The second
+run had N=1177 participants, mix of coat/no coat, empathetic/not empathetic 
+in each study. This corresponds to studiy 2.
+
+
 ```{r}
-project_data %>% 
-  filter(X__1 == 0 | X__1 == 1| X__2 == 0| X__2 ==1) 
+unifactors <- unite(project_data_tidied, factors, c(factored_condcoat,factored_condemp))
+
+study_1 <- unifactors %>% filter(study==1)
+study_2 <- unifactors %>% filter(study!=1)
+
+
+unifactors$study[unifactors$study==1] <- 'study 1'
+unifactors$study[unifactors$study==2] <- 'study 2'
+unifactors$study[unifactors$study==3] <- 'study 2'
+unifactors$study[unifactors$study==4] <- 'study 2'
+
+ggplot(unifactors, aes(x=factors, fill=factors)) +
+  facet_wrap('study') +
+  theme(#axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank())+  
+  geom_bar()
+
 ```
-All 161 observations with a 0 or 1 (so, not NA) in X__1 or X__2 are from study 1. That's out of 194 total observations in study 1.
+
+As discussed earlier the, the reseachers found that there was no signifigant 
+effect of the clinician wearing a white coat and thus dropped it from the study.
+This resulted in the colapsing of the plot shown above into one group, only 
+differing in whether there non-verbal behavior was empathetic or unempathetic.
+
+```{r}
+ggplot(project_data_tidied, aes(x=factored_condemp, fill=factored_condemp)) +
+  theme(#axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank())+  
+  geom_bar()
+
+project_data_tidied %>% 
+  group_by(factored_condemp) %>% 
+  summarise(n())
+
+```
+
+We see that there are almost exactly the same number of subjects that were
+exposed to a clinician displayin empathetic non-verbal behavior as there were
+subjects exposed to clinicians displaying unempathetic non-verbal behavior.
+
+### Dependent Variables
+
+Lets look at the responses of the subjects in relation to our independent 
+variables. Here we look at a correlation plot between the the dependent 
+variables seperated by the sex of the subject.
+
+```{r}
+
+repo_boxplot <- project_data_tidied %>%
+  remove_missing(na.rm=TRUE) %>%
+  subset(select = c(empathy, warmth, competence, factored_condemp, factored_sex)) 
+
+ggpairs(repo_boxplot, aes(colour = factored_sex, alpha = 0.7),
+        columns = c("empathy", "warmth", "competence"))
+```
+
+We can see that there is no signifigant difference between in the responses 
+between males and females.
+
+Now lets look at the same correlation between dependent variables but seperating
+by whether the clinician in the picture was displaying empathetic non-verbal
+behavior or not. 
 
 
-### A discussion of issues uncovered in your data quality review. How did you resolve them? Or were you not able to? Could they impact your ability to replicate any downstream analyses?**
 
-We had a few small issues that came up in our data review:
 
-1. We had two columns attached to our data that were not labeled, and mostly had `NA` values. These were labeled as "X__1" and "X__2" by R. We wanted to determine if they were used in the paper somewhere. We went through the means and Ns in the paper, to determine if the N or mean of the unlabeled columns matched something in the paper. We did not find the Ns or means of those two columns anywhere in the paper. And, we were able to recreate the results in the paper without using those two unlabeled columns. Thus, we concluded that we should just remove those columns.
+```{r}
 
-2. For some variables, it was a little unclear exactly which question in the questionaires they were attached to. Specifically for the WARM questions: `WARM1|WARM2|WARM4|WARM3`. There was not any direct reference from data description to numbered column names and therefore we depended on the assumption that column numbering corresponds to the order in which questions are laid out in the questionnaire.  Therefore, in the situation mentioned above we put the question that comes fourth in the warmth section in `WARM4` and the question that comes third in `WARM3` even though these columns are out of order in the dataset. Additionally, we found that this does not matter in the end as well, since we end up taking a composite of these scores, and do not look at individual scores within categories.
+ggpairs(repo_boxplot, aes(colour = factored_condemp, alpha = 0.7),
+        columns = c("empathy", "warmth", "competence"))
+```
 
-3. We had to replace certain values with `NA`. The categories `WARM#` and `COMP#` have options 0-4 and a 'does not apply' option in the questionnaire. However, in the raw data only numbers 1-5 appear and there are many blank spots. This led us to believe that it is likely that the the values 0-4 in the questionnaire map to values 1-5 in the raw data and the 'does not apply' option is mapped to an empty cell in the raw data. In comparison, the `CARE` columns used 1-6, where 6 was "does not apply". Thus, we changed the 6 in those columns to `NA` to match the `WARM` and `COMP` categories.
+In this case we can see that there is a large difference between empethetic
+and unempathetic non-verbal communication in response to both empathy and
+warmth. The competence is less clear than the others. Discovering whether
+there is a signifigant difference in the competence is one of the main 
+objectives in this study.
+
+### Covariants
+
+Finally in this study we want to adjust for covariance between the outcomes 
+and the attitude of the subjects coming into the study based on there responses
+to the PANAS scale. Below we plot a linear model between the positive and
+negative panas results and the resulting scores given for each of the 
+dependant variables.
+
+
+
+```{r}
+mood_plots <- project_data_tidied %>%
+  remove_missing(na.rm=TRUE) %>%
+  subset(select = c(empathy, warmth, competence, positive_mood, negative_mood)) 
+
+mood_emp_pos <- ggplot(mood_plots, aes(x = positive_mood, y = empathy)) + 
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE)
+
+mood_emp_neg <- ggplot(mood_plots, aes(x = negative_mood, y = empathy)) + 
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE)
+
+mood_wrm_pos <- ggplot(mood_plots, aes(x = positive_mood, y = warmth)) + 
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE)
+
+mood_wrm_neg <- ggplot(mood_plots, aes(x = negative_mood, y = warmth)) + 
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE)
+
+
+mood_cmp_pos <- ggplot(mood_plots, aes(x = positive_mood, y = competence)) + 
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE)
+
+mood_cmp_neg <- ggplot(mood_plots, aes(x = negative_mood, y = competence)) + 
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE)
+  
+
+theme_set(theme_pubr())
+mood_relationships <- ggarrange(mood_emp_pos, mood_wrm_pos, mood_cmp_pos,
+                                mood_emp_neg, mood_wrm_neg,  mood_cmp_neg,
+                                ncol = 3, nrow = 2)
+mood_relationships
+```
+
+
+Here we can see that there apears to be a strong positive effect of positive 
+mood in all categories. There appears to be a lesser but still apparent negative
+effect for all three categories.
+
+
+
 
 # Replication
 In this section, we replicate the main analyses of the paper. This is split into three main sections: Empathy, Warmth, and Competence. In each section, we replicate the results from specific quotes from the paper, which are written in bold. At the end, we include a summary of these three sections with a replication of the paper's main figure. 
@@ -218,7 +435,54 @@ competence_error
 #error bars * 1.96, -1.96 for confidence intervals
 ```
 
-**Add Eric's figure here**
+```{r}
+
+# build comparison dataframe
+emp_graph <- interactionMeans(lin_model_empathy_condemp, adjustment = "bonferroni") %>%
+  mutate(DV = "Empathy")
+wrm_graph <- interactionMeans(lin_model_warmth_condemp, adjustment = "bonferroni") %>%
+  mutate(DV = "Warmth")
+cmp_graph <- interactionMeans(lin_model_competence_condemp, adjustment = "bonferroni") %>%
+  mutate(DV = "Competence")
+grr <- rbind(emp_graph,wrm_graph,cmp_graph)
+
+
+# Ensure graph components are matching color and position of papers
+grr$DV <- factor(grr$DV,levels = c("Empathy", "Warmth", "Competence"))
+
+# plot parameterization
+intrabar_spacing = -.9 # how far red and blue bars are from eachother
+ggplot(grr, aes(x=DV, y=`adjusted mean`, fill=factored_condemp, ylim(1,5), order = -as.numeric(factored_condemp))) + 
+    geom_bar(position=position_dodge(width = intrabar_spacing), stat="identity", width = .8) +
+    # Use 95% confidence intervals
+    geom_errorbar(aes(ymin=`adjusted mean`- `std. error`*1.96, ymax=`adjusted mean`+ `std. error`*1.96),
+                  width=.075,  # Width of the error bars
+                  position=position_dodge(width =intrabar_spacing)) + 
+    coord_cartesian(ylim=c(1,5))+
+  scale_fill_manual(values=c("blue","red")) # match paper color
+  
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 # Extension
 
