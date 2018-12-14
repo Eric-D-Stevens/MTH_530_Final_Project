@@ -17,40 +17,40 @@ PLoS ONE 12(5): e0177758. https://doi.org/
 
 #### Paper Summary:
 
-In this paper, the researchers explore the effect of empthetic non-verbal 
-communication on patient perception of clinitian empathy, warmth and 
-competence. The goal of the project is to show that when a clinitian 
-displays empathetic body language, patients will precieve the clinitian as
-having more empathy, warmth, and importantly competence than a clinitian 
-does not display these characteristics. The key here is show that, in a
-clinical setting, perceptions of empathy are not negativly correlated with 
+In this paper, the researchers explore the effect of empathetic non-verbal 
+communication on patient perception of clinician empathy, warmth and 
+competence. The goal of the project is to show that when a clinician 
+displays empathetic body language, patients will perceive the clinician as
+having more empathy, warmth, and importantly competence than a clinician 
+who does not display these characteristics. The key here is show that, in a
+clinical setting, perceptions of empathy are not negatively correlated with 
 perceptions of competence as they have been shown to be in other settings.
 
-The data consisted consisted of responses to a survey performed on Amazon 
+The data consisted of responses to a survey performed on Amazon 
 Mechanical Turk. In this survey subjects were asked to report on their 
 emotional state coming into the experiment using the PANAS scale. They were 
-then shown a series of 6 photographs showing a clinitian that is 
+then shown a series of 6 photographs showing a clinician that is 
 demonstrating either empathetic non-verbal behavior (leaning in, open 
 chested, concerned look on face) or unempathetic non-verbal behavior (
-leaned back, arms crossed, disintrested look on face) and each wearing 
-either the traditional physican white coat or more regular clothing. This
+leaned back, arms crossed, disinterested look on face) and each wearing 
+either the traditional physician white coat or more regular clothing. This
 made four different types of pictures that could be shown. Each subject saw 
-either 6 empethetic pictures or 6 unempethetic pictures, never a mix. In 
+either 6 empathetic pictures or 6 unempathetic pictures, never a mix. In 
 each of the pictures the clinician would either be wearing a white coat or
-not, never both.Each of these pictures was acompanied with 1 to 3 lines of 
-script that mimiced a conversation between a doctor and a patient where the
-doctor was recomending surgery over medical treatment. Durring this time, 
+not, never both. Each of these pictures was accompanied with 1 to 3 lines of 
+script that mimicked a conversation between a doctor and a patient where the
+doctor was recommending surgery over medical treatment. During this time, 
 subjects in the experiment were asked to pretend that they were the patient. 
 After the pictures and scripts, patients were asked to fill out a survey rating 
 the  doctors empathy, warmth, and competence. The survey used for empathy was 
 the CARE scale and Fiske’s stereotype content model was used to measure 
 both warmth and competence. The data that was recorded was the category of 
-non-verbal behavior a subject was exposed to (empathetic / unempethetic), 
-the responces to the PANAS, CARE, and Fiske's surveys, and the subjects 
+non-verbal behavior a subject was exposed to (empathetic / unempathetic), 
+the responses to the PANAS, CARE, and Fiske's surveys, and the subjects 
 sex.
 
-The indepentent variables of interest in the experiment were the category of 
-non-verbal behavior a subject was exposed to (empathetic / unempethetic),
+The independent variables of interest in the experiment were the category of 
+non-verbal behavior a subject was exposed to (empathetic / unempathetic),
 whether the clinician was wearing a white coat or not, and the sex of the 
 subject taking the test. **The experimenters realized that the white coat 
 made no statistical difference and threw it out of the experiment.** The 
@@ -58,12 +58,8 @@ dependent variables in the experiment were scores derived from subject
 responses to the CARE survey and the Fiske’s stereotype content model survey.
 These were compiled and normalized to give a score of between 1 and 5 for 
 each category, empathy, warmth, and competence. Finally, the covariants in 
-the experement were the emotional states of the participants coming into the
+the experiment were the emotional states of the participants coming into the
 experiment as measured through the positive and negative PANAS survey.
-
-The researchers come to the conclusion that there is a strong corelation 
-between empathetic non-verbal behavior in subject precieved empathy and warmth.
-
 
 
 
@@ -143,7 +139,7 @@ project_data_tidied
 #### Independent variables
 
 While the difference in the response between the sexes was not the main 
-subject of the experiment it was discussed in detail. Lets first explor the 
+subject of the experiment it was discussed in detail. Lets first explore the 
 gender breakdown of the study participants.
 
 ```{r}
@@ -155,16 +151,16 @@ project_data_tidied %>%
 ```
 As we can see there are a much larger number of females in our data than 
 males. This is important in interpreting overall results. Any time we do 
-an analysis that does not explicitly seperate the results based on sex will
+an analysis that does not explicitly separate the results based on sex will
 have an bias towards female responses, since they are over represented and 
 not controlled for in this study.
 
 Next lets move on to the stimuli the subjects were exposed to. Although this 
 was not discussed earlier, the paper states that the data was collected in 
-two seperate studies. The first run had N=194 participants, all wore white 
+two separate studies. The first run had N=194 participants, all wore white 
 coats, empathetic and not empathetic. This corresponds to study 1. The second
 run had N=1177 participants, mix of coat/no coat, empathetic/not empathetic 
-in each study. This corresponds to studiy 2.
+in each study. This corresponds to study 2.
 
 
 ```{r}
@@ -188,9 +184,9 @@ ggplot(unifactors, aes(x=factors, fill=factors)) +
 
 ```
 
-As discussed earlier the, the reseachers found that there was no signifigant 
+As discussed earlier the, the researchers found that there was no significant 
 effect of the clinician wearing a white coat and thus dropped it from the study.
-This resulted in the colapsing of the plot shown above into one group, only 
+This resulted in the collapsing of the plot shown above into one group, only 
 differing in whether there non-verbal behavior was empathetic or unempathetic.
 
 ```{r}
@@ -207,14 +203,14 @@ project_data_tidied %>%
 ```
 
 We see that there are almost exactly the same number of subjects that were
-exposed to a clinician displayin empathetic non-verbal behavior as there were
+exposed to a clinician displaying empathetic non-verbal behavior as there were
 subjects exposed to clinicians displaying unempathetic non-verbal behavior.
 
 ### Dependent Variables
 
 Lets look at the responses of the subjects in relation to our independent 
 variables. Here we look at a correlation plot between the the dependent 
-variables seperated by the sex of the subject.
+variables separated by the sex of the subject.
 
 ```{r}
 
@@ -226,10 +222,10 @@ ggpairs(repo_boxplot, aes(colour = factored_sex, alpha = 0.7),
         columns = c("empathy", "warmth", "competence"))
 ```
 
-We can see that there is no signifigant difference between in the responses 
+We can see that there is no significant difference between in the responses 
 between males and females.
 
-Now lets look at the same correlation between dependent variables but seperating
+Now lets look at the same correlation between dependent variables but separating
 by whether the clinician in the picture was displaying empathetic non-verbal
 behavior or not. 
 
@@ -242,10 +238,10 @@ ggpairs(repo_boxplot, aes(colour = factored_condemp, alpha = 0.7),
         columns = c("empathy", "warmth", "competence"))
 ```
 
-In this case we can see that there is a large difference between empethetic
+In this case we can see that there is a large difference between empathetic
 and unempathetic non-verbal communication in response to both empathy and
 warmth. The competence is less clear than the others. Discovering whether
-there is a signifigant difference in the competence is one of the main 
+there is a significant difference in the competence is one of the main 
 objectives in this study.
 
 ### Covariants
@@ -253,8 +249,8 @@ objectives in this study.
 Finally in this study we want to adjust for covariance between the outcomes 
 and the attitude of the subjects coming into the study based on there responses
 to the PANAS scale. Below we plot a linear model between the positive and
-negative panas results and the resulting scores given for each of the 
-dependant variables.
+negative PANAS results and the resulting scores given for each of the 
+dependent variables.
 
 
 
@@ -297,7 +293,7 @@ mood_relationships
 ```
 
 
-Here we can see that there apears to be a strong positive effect of positive 
+Here we can see that there appears to be a strong positive effect of positive 
 mood in all categories. There appears to be a lesser but still apparent negative
 effect for all three categories.
 
