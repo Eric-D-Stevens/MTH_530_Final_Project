@@ -1,0 +1,507 @@
+---
+title: "Math 530 Final Project"
+subtitle: "P4: Replication/Extension Report" 
+output: html_document
+author: "Jeevan Bihari, Eric Stevens, Alexandra Salem"
+---
+
+
+#### Paper: 
+
+Kraft-Todd GT, Reinero DA, Kelley JM,
+Heberlein AS, Baer L, Riess H (2017) Empathic
+nonverbal behavior increases ratings of both
+warmth and competence in a medical context.
+PLoS ONE 12(5): e0177758. https://doi.org/
+10.1371/journal.pone.0177758
+
+#### Paper Summary:
+
+In this paper, the researchers explore the effect of empathetic non-verbal 
+communication on patient perception of clinician empathy, warmth and 
+competence. The goal of the project is to show that when a clinician 
+displays empathetic body language, patients will perceive the clinician as
+having more empathy, warmth, and competence than a clinician 
+who does not display these characteristics. The key here is show that, in a
+clinical setting, perceptions of empathy are not negatively correlated with 
+perceptions of competence as they have been shown to be in other settings.
+
+The data consisted of responses to a survey performed on Amazon 
+Mechanical Turk. In this survey subjects were asked to report on their 
+emotional state coming into the experiment using the PANAS scale. They were 
+then shown a series of 6 photographs showing a clinician that is 
+demonstrating either empathetic non-verbal behavior (leaning in, open 
+chested, concerned look on face) or unempathetic non-verbal behavior (
+leaned back, arms crossed, disinterested look on face) and each wearing 
+either the traditional physician white coat or more regular clothing. This
+made four different types of pictures that could be shown. Each subject saw 
+either 6 empathetic pictures or 6 unempathetic pictures, never a mix. In 
+each of the pictures the clinician would either be wearing a white coat or
+not, never both. Each of these pictures was accompanied with 1 to 3 lines of 
+script that mimicked a conversation between a doctor and a patient where the
+doctor was recommending surgery over medical treatment. During this time, 
+subjects in the experiment were asked to pretend that they were the patient. 
+After the pictures and scripts, patients were asked to fill out a survey rating 
+the  doctors empathy, warmth, and competence. The survey used for empathy was 
+the CARE scale and Fiske’s stereotype content model was used to measure 
+both warmth and competence. The data that was recorded was the category of 
+non-verbal behavior a subject was exposed to (empathetic / unempathetic), 
+the responses to the PANAS, CARE, and Fiske's surveys, and the subjects 
+sex.
+
+The independent variables of interest in the experiment were the category of 
+non-verbal behavior a subject was exposed to (empathetic / unempathetic),
+whether the clinician was wearing a white coat or not, and the sex of the 
+subject taking the test. **The experimenters realized that the white coat 
+made no statistical difference and threw it out of the experiment.** The 
+dependent variables in the experiment were scores derived from subject 
+responses to the CARE survey and the Fiske’s stereotype content model survey.
+These were compiled and normalized to give a score of between 1 and 5 for 
+each category, empathy, warmth, and competence. Finally, the covariants in 
+the experiment were the emotional states of the participants coming into the
+experiment as measured through the positive and negative PANAS survey.
+
+
+
+## Exploratory Data Analysis Report
+
+### A discussion of issues uncovered in your data quality review. 
+
+We had a few small issues that came up in our data review:
+
+1. We had two columns attached to our data that were not labeled, and mostly had `NA` values. These were labeled as "X__1" and "X__2" by R. We wanted to determine if they were used in the paper somewhere. We went through the means and Ns in the paper, to determine if the N or mean of the unlabeled columns matched something in the paper. We did not find the Ns or means of those two columns anywhere in the paper. And, we were able to recreate the results in the paper without using those two unlabeled columns. Thus, we concluded that we should just remove those columns.
+
+2. For some variables, it was a little unclear exactly which question in the questionaires they were attached to. Specifically for the WARM questions: `WARM1|WARM2|WARM4|WARM3`. There was not any direct reference from data description to numbered column names and therefore we depended on the assumption that column numbering corresponds to the order in which questions are laid out in the questionnaire.  Therefore, in the situation mentioned above we put the question that comes fourth in the warmth section in `WARM4` and the question that comes third in `WARM3` even though these columns are out of order in the dataset. Additionally, we found that this does not matter in the end as well, since we end up taking a composite of these scores, and do not look at individual scores within categories.
+
+3. We had to replace certain values with `NA`. The categories `WARM#` and `COMP#` have options 0-4 and a 'does not apply' option in the questionnaire. However, in the raw data only numbers 1-5 appear and there are many blank spots. This led us to believe that it is likely that the the values 0-4 in the questionnaire map to values 1-5 in the raw data and the 'does not apply' option is mapped to an empty cell in the raw data. In comparison, the `CARE` columns used 1-6, where 6 was "does not apply". Thus, we changed the 6 in those columns to `NA` to match the `WARM` and `COMP` categories.
+
+
+### Loading libraries
+```{r warning=FALSE,message=FALSE}
+library(tidyverse)
+library(skimr)
+library(readxl) # to read in the xlsx file
+library(naniar) #for replacing 6 with NA
+# install packages needed for ANCOVA analysis as per the "Discovering Statistics Using R" book by Field, Miles and Field
+#install.packages("car"); install.packages("akima"); install.packages("compute.es"); install.packages ("effects");install.packages("ggplot2");install.packages("multcomp");install.packages("pastecs"); install.packages("WRS", repos="http://R-Forge.R-project.org")
+# load ANCOVA relate libraries after installing them
+library(car); # for Levene’s test, Type III sums of squares
+library(compute.es); # for effect sizes
+library(effects); # for adjusted means
+library(ggplot2); # for graphs
+library(multcomp); # for post hoc tests
+library(pastecs); # for descriptive statistics
+library(WRS) # for robust tests
+library(phia)
+library(GGally)
+library(ggpubr)
+```
+
+
+```{r}
+project_data <- read_excel("raw_data.xlsx", sheet = 1)
+```
+
+### Tidying data and creating composite measures for moods
+```{r}
+project_data_tidied <- project_data %>% 
+  dplyr::select(-X__1, -X__2) %>% 
+  replace_with_na_at(.vars = c("CARE1", "CARE2", "CARE3", "CARE4", "CARE5", "CARE6", "CARE7", "CARE8", "CARE9", "CARE10"),
+                     condition = ~.x == 6)
+```
+
+```{r}
+# convert binary data to 2-level factors
+project_data_tidied$factored_sex<-factor(project_data_tidied$sex, levels = c(0,1), labels = c("Male", "Female"))
+project_data_tidied$factored_condemp<-factor(project_data_tidied$condemp, levels = c(0,1), labels = c("Non-Empathetic", "Empathetic"))
+project_data_tidied$factored_condcoat<-factor(project_data_tidied$condcoat, levels = c(0,1), labels = c("No Coat", "Coat"))
+
+
+# creating composite metrics based on row-wise means using one of the technique shown here: https://stackoverflow.com/questions/9490485/how-can-i-get-the-average-mean-of-selected-columns
+# Composite measure (mean) of the positive mood subscale
+project_data_tidied$positive_mood <- rowMeans(subset(project_data_tidied, select = c(PANASPOS1, PANASPOS2, PANASPOS3, PANASPOS4, PANASPOS5, PANASPOS6, PANASPOS7, PANASPOS8, PANASPOS9, PANASPOS10)), na.rm = TRUE)
+# Composite measure (mean) of the negative mood subscale
+project_data_tidied$negative_mood <- rowMeans(subset(project_data_tidied, select = c(PANASNEG1, PANASNEG2, PANASNEG3, PANASNEG4, PANASNEG5, PANASNEG6, PANASNEG7, PANASNEG8, PANASNEG9, PANASNEG10)), na.rm = TRUE)
+# Composite measure (mean) of the physician competence values per patient
+project_data_tidied$competence <- rowMeans(subset(project_data_tidied, select = c(COMP1, COMP2, COMP3, COMP4, COMP5)), na.rm = TRUE)
+# Composite measure (mean) of the physician warmth values per patient
+project_data_tidied$warmth <- rowMeans(subset(project_data_tidied, select = c(WARM1, WARM2, WARM3, WARM4)), na.rm = TRUE)
+# Composite measure (mean) of the empathy values per subject
+project_data_tidied$empathy <- rowMeans(subset(project_data_tidied, select = c(CARE1, CARE2, CARE3, CARE4, CARE5, CARE6, CARE7, CARE8, CARE9, CARE10)), na.rm = TRUE)
+
+
+project_data_tidied <- project_data_tidied[!is.na(project_data_tidied$factored_sex), ]
+project_data_tidied
+```
+
+### Examination of tidied data
+
+#### Independent variables
+
+While the difference in the response between the sexes was not the main 
+subject of the experiment it was discussed in detail. Lets first explore the 
+gender breakdown of the study participants.
+
+```{r}
+ggplot(project_data_tidied, aes(x=factored_sex, fill = factored_sex)) + geom_bar()
+project_data_tidied %>% 
+  group_by(factored_sex) %>% 
+  summarise(n())
+
+```
+As we can see there are a much larger number of females in our data than 
+males. This is important in interpreting overall results. Any time we do 
+an analysis that does not explicitly separate the results based on sex will
+have an bias towards female responses, since they are over represented and 
+not controlled for in this study.
+
+Next lets move on to the stimuli the subjects were exposed to. Although this 
+was not discussed earlier, the paper states that the data was collected in 
+two separate studies. The first run had N=194 participants, all wore white 
+coats, empathetic and not empathetic. This corresponds to study 1. The second
+run had N=1177 participants, mix of coat/no coat, empathetic/not empathetic 
+in each study. This corresponds to study 2.
+
+
+```{r}
+unifactors <- unite(project_data_tidied, factors, c(factored_condcoat,factored_condemp))
+
+study_1 <- unifactors %>% filter(study==1)
+study_2 <- unifactors %>% filter(study!=1)
+
+
+unifactors$study[unifactors$study==1] <- 'study 1'
+unifactors$study[unifactors$study==2] <- 'study 2'
+unifactors$study[unifactors$study==3] <- 'study 2'
+unifactors$study[unifactors$study==4] <- 'study 2'
+
+ggplot(unifactors, aes(x=factors, fill=factors)) +
+  facet_wrap('study') +
+  theme(#axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank())+  
+  geom_bar()
+
+```
+
+As discussed earlier the, the researchers found that there was no significant 
+effect of the clinician wearing a white coat and thus dropped it from the study.
+This resulted in the collapsing of the plot shown above into one group, only 
+differing in whether there non-verbal behavior was empathetic or unempathetic.
+
+```{r}
+ggplot(project_data_tidied, aes(x=factored_condemp, fill=factored_condemp)) +
+  theme(#axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank())+  
+  geom_bar()
+
+project_data_tidied %>% 
+  group_by(factored_condemp) %>% 
+  summarise(n())
+
+```
+
+We see that there are almost exactly the same number of subjects that were
+exposed to a clinician displaying empathetic non-verbal behavior as there were
+subjects exposed to clinicians displaying unempathetic non-verbal behavior.
+
+#### Dependent Variables
+
+Lets look at the responses of the subjects in relation to our independent 
+variables. Here we look at a correlation plot between the the dependent 
+variables separated by the sex of the subject.
+
+```{r}
+
+repo_boxplot <- project_data_tidied %>%
+  remove_missing(na.rm=TRUE) %>%
+  subset(select = c(empathy, warmth, competence, factored_condemp, factored_sex)) 
+
+ggpairs(repo_boxplot, aes(colour = factored_sex, alpha = 0.7),
+        columns = c("empathy", "warmth", "competence"))
+```
+
+We can see that there is no significant difference between in the responses 
+between males and females.
+
+Now lets look at the same correlation between dependent variables but separating
+by whether the clinician in the picture was displaying empathetic non-verbal
+behavior or not. 
+
+
+
+
+```{r}
+
+ggpairs(repo_boxplot, aes(colour = factored_condemp, alpha = 0.7),
+        columns = c("empathy", "warmth", "competence"))
+```
+
+In this case we can see that there is a large difference between empathetic
+and unempathetic non-verbal communication in response to both empathy and
+warmth. The competence is less clear than the others. Discovering whether
+there is a significant difference in the competence is one of the main 
+objectives in this study.
+
+#### Covariants
+
+Finally in this study we want to adjust for covariance between the outcomes 
+and the attitude of the subjects coming into the study based on there responses
+to the PANAS scale. Below we plot a linear model between the positive and
+negative PANAS results and the resulting scores given for each of the 
+dependent variables.
+
+
+
+```{r}
+mood_plots <- project_data_tidied %>%
+  remove_missing(na.rm=TRUE) %>%
+  subset(select = c(empathy, warmth, competence, positive_mood, negative_mood)) 
+
+mood_emp_pos <- ggplot(mood_plots, aes(x = positive_mood, y = empathy)) + 
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE)
+
+mood_emp_neg <- ggplot(mood_plots, aes(x = negative_mood, y = empathy)) + 
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE)
+
+mood_wrm_pos <- ggplot(mood_plots, aes(x = positive_mood, y = warmth)) + 
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE)
+
+mood_wrm_neg <- ggplot(mood_plots, aes(x = negative_mood, y = warmth)) + 
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE)
+
+
+mood_cmp_pos <- ggplot(mood_plots, aes(x = positive_mood, y = competence)) + 
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE)
+
+mood_cmp_neg <- ggplot(mood_plots, aes(x = negative_mood, y = competence)) + 
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE)
+  
+
+theme_set(theme_pubr())
+mood_relationships <- ggarrange(mood_emp_pos, mood_wrm_pos, mood_cmp_pos,
+                                mood_emp_neg, mood_wrm_neg,  mood_cmp_neg,
+                                ncol = 3, nrow = 2)
+mood_relationships
+```
+
+
+Here we can see that there appears to be a strong positive effect of positive 
+mood in all categories. There appears to be a lesser but still apparent negative
+effect for all three categories.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Replication
+In this section, we replicate the main analyses of the paper. This is split into three main sections: Empathy, Warmth, and Competence. In each section, we replicate the results from specific quotes from the paper, which are written in bold. At the end, we include a summary of these three sections with a replication of the paper's main figure. 
+
+#### Empathy
+**"Adjusting for mood, we found a significant main effect of nonverbal behavior on ratings of empathy such that participants rated physicians displaying empathic nonverbal behavior as more empathic (M = 3.29, SD = 1.15) than physicians displaying unempathic nonverbal behavior (M = 1.86, SD = .93, F(1,1362) = 568.49, p < .001, η2_p = .30; see Fig 3)."**
+
+
+```{r}
+lin_model_empathy_condemp <- lm(empathy ~ factored_condemp + positive_mood, data = project_data_tidied)
+
+test <- Anova(lin_model_empathy_condemp, type = 2, adjustment = "bonferroni")
+test
+```
+
+Here, we get $p < .001$ (indicated by the triple star), so that value is verified. This indicates a significant main effect of nonverbal behavior on ratings of empathy. Our f-statistic is off from theirs--we get 644.55 instead of 568.49.
+
+```{r}
+interactionMeans(lin_model_empathy_condemp, adjustment = "bonferroni")
+```
+
+We are getting close to their mean for each of these groups. We got 1.89 for the non-empathetic group, in comparison to 1.86, and 3.25 for the empathetic group, in comparison to 3.29. 
+
+---
+
+**"There was also a significant, albeit very small, main effect of subject gender such that male participants rated physicians in both conditions as more empathic (M = 2.70, SD = 1.21) than the female participants (M = 2.49, SD = 1.30, F(1,1362) = 6.60, p = .01, η2_p = .005)."**
+
+```{r}
+lin_model_empathy_gender <- lm(empathy ~ factored_sex, data = project_data_tidied)
+test_empathy_gender <- Anova(lin_model_empathy_gender, type = 2, adjustment = "bonferroni")
+test_empathy_gender
+```
+
+Here, we get $p = .002$, which is "double-star", significant, $p<.01$. This matches the paper, and indicates a small main effect of participant gender on ratings of empathy. Our f-statistic is again off from theirs, at 9.5719 instead of 6.60.
+
+```{r}
+interactionMeans(lin_model_empathy_gender, adjustment = "bonferroni")
+```
+
+Here, we are at the exact adjusted means from the paper for male and female. 
+
+---
+
+**"There was a marginally significant interaction of nonverbal behavior with participant gender (F(1,1362) = 3.00, p = .084, η2 p = .002) such that in the unempathic condition, women perceived physicians as less empathic (M = 1.73, SD = .88) than men (M = 2.05, SD = .98, F(679) = 13.48, p < .001, η2_p = .02)."**
+
+```{r}
+lin_model_condemp_gender_interaction <- lm(empathy ~ factored_condemp*factored_sex, data = project_data_tidied)
+test_condemp_gender_interaction <- Anova(lin_model_condemp_gender_interaction, type = 2, adjustment = "bonferroni")
+test_condemp_gender_interaction
+```
+Our p-value for the interaction is $p = 0.04$, which is actually lower than theirs. This indicates a significant interaction between nonverbal empathy and participant gender. Our p-value for sex is $p=.0004$, which is within their stated range, $p<.001$.
+
+```{r}
+phia::interactionMeans(lin_model_condemp_gender_interaction, adjustment = "bonferroni")
+```
+
+We get means close to those reported by the paper for un-empathetic conditions--1.77 for females and 1.98 for males.
+
+---
+
+#### Warmth
+
+**"Adjusting for mood, we found a significant main effect of nonverbal behavior on ratings of warmth such that participants rated physicians displaying empathic nonverbal behavior as more warm (M = 3.73, SD = .93) than physicians displaying unempathic nonverbal behavior (M = 2.28, SD = .98, F(1,1362) = 674.49, p < .001, η2_p = .33)."**
+
+```{r}
+lin_model_warmth_condemp <- lm(warmth ~ factored_condemp + positive_mood, data = project_data_tidied)
+Anova(lin_model_warmth_condemp, type = 2, adjustment = "bonferroni")
+```
+We are getting a lower p-value within their stated range, $p<.001$, indicating a significant main effect of nonverbal behavior on ratings of warmth. 
+
+```{r}
+interactionMeans(lin_model_warmth_condemp, adjustment = "bonferroni")
+```
+
+Additionally, we are able to get very close to their means. We get a mean of 2.31 for the non-empathetic group, in comparison to the paper's reported mean of 2.28. And, we get a mean of 3.70 for the empathetic group, in comparison to the paper's reported mean of 3.73.
+
+**"We also found a significant interaction of nonverbal behavior with participant gender (F(1,1362) = 4.88, p = .027, η2 p = .004) such that in the unempathic condition, women perceived physicians as less warm (M = 2.20, SD = 0.98) than men (M = 2.42, SD = .95, F(1,679) = 4.46, p = .035, η2 p = .007)."**
+
+```{r}
+lin_model_warmth_condemp_gender_interaction <- lm(warmth ~ factored_sex*factored_condemp, data = project_data_tidied)
+Anova(lin_model_warmth_condemp_gender_interaction, type = 2)
+```
+For the interaction, we are getting a p-value of $p = .009$ which is higher than theirs, $p = .004$. We also have a slightly higher F-statistic for the interaction.
+
+```{r}
+interactionMeans(lin_model_warmth_condemp_gender_interaction)
+```
+We are able to get their exact means. For the non-empathetic condition, we get an adjusted mean of 2.42 for males and 2.20 for females, which matches the paper exactly.
+
+---
+
+#### Competence
+
+**"Adjusting for mood, there was a significant main effect of nonverbal behavior on ratings of competence, such that participants rated physicians displaying empathic nonverbal behavior as more competent (M = 3.64, SD = .65) than physicians displaying unempathic nonverbal behavior (M = 3.21, SD = .81, F(1,1362) = 85.11, p < .001, η2_p = .06)."**
+
+```{r}
+lin_model_competence_condemp <- lm(competence ~ factored_condemp + positive_mood, data = project_data_tidied)
+Anova(lin_model_competence_condemp, type = 2, adjustment = "bonferroni")
+```
+Again, we get a p-value within their range, $p<.001$, indicating the significant main effect of nonverbal behvior on ratings of competence.
+
+```{r}
+interactionMeans(lin_model_competence_condemp, adjustment = "bonferroni")
+```
+And, we are able to get very close to their means. For the non-empathetic group, we get a mean of 3.23 in comparison to the paper's reported mean of 3.21. For the empathetic group, we get a mean of 3.62 in comparison to the paper's reported mean of 3.64.
+
+
+####Summary of the main effect of nonverbal empathy
+
+Here, we replicate the main figure from the paper, that summarizes the main effect of nonverbal empathy on ratings of empathy, warmth, and competence.
+
+```{r}
+
+emp_mean <- as.data.frame(interactionMeans(lin_model_empathy_condemp, adjustment = "bonferroni"))[1,2]
+emp_error <- as.data.frame(interactionMeans(lin_model_empathy_condemp, adjustment = "bonferroni"))[2,2] 
+emp_mean
+emp_error
+
+warmth_mean<- as.data.frame(interactionMeans(lin_model_warmth_condemp, adjustment = "bonferroni"))[1,2]
+warmth_error<- as.data.frame(interactionMeans(lin_model_warmth_condemp, adjustment = "bonferroni"))[2,2]
+warmth_mean
+warmth_error
+
+competence_mean<-as.data.frame(interactionMeans(lin_model_competence_condemp, adjustment = "bonferroni"))[1,2]
+competence_error<-as.data.frame(interactionMeans(lin_model_competence_condemp, adjustment = "bonferroni"))[2,2]
+competence_mean
+competence_error
+
+#all adjusted for mean.
+#error bars * 1.96, -1.96 for confidence intervals
+```
+
+```{r}
+
+# build comparison dataframe
+emp_graph <- interactionMeans(lin_model_empathy_condemp, adjustment = "bonferroni") %>%
+  mutate(DV = "Empathy")
+wrm_graph <- interactionMeans(lin_model_warmth_condemp, adjustment = "bonferroni") %>%
+  mutate(DV = "Warmth")
+cmp_graph <- interactionMeans(lin_model_competence_condemp, adjustment = "bonferroni") %>%
+  mutate(DV = "Competence")
+grr <- rbind(emp_graph,wrm_graph,cmp_graph)
+
+
+# Ensure graph components are matching color and position of papers
+grr$DV <- factor(grr$DV,levels = c("Empathy", "Warmth", "Competence"))
+
+# plot parameterization
+intrabar_spacing = -.9 # how far red and blue bars are from eachother
+ggplot(grr, aes(x=DV, y=`adjusted mean`, fill=factored_condemp, ylim(1,5), order = -as.numeric(factored_condemp))) + 
+    geom_bar(position=position_dodge(width = intrabar_spacing), stat="identity", width = .8) +
+    # Use 95% confidence intervals
+    geom_errorbar(aes(ymin=`adjusted mean`- `std. error`*1.96, ymax=`adjusted mean`+ `std. error`*1.96),
+                  width=.075,  # Width of the error bars
+                  position=position_dodge(width =intrabar_spacing)) + 
+    coord_cartesian(ylim=c(1,5))+
+  scale_fill_manual(values=c("blue","red")) # match paper color
+  
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Extension
+
+In order to use ANCOVA, covariates need to be independent of the treatment effect(s). To accomplish that, one should run an ANOVA with the covariate as the outcome and the independent variable(s) as predictors to check that the covariate does not differ significantly across levels of these variables. No ANCOVA should be performed using those covariates if there is a significant result.
+
+The experiment in our paper performed an ANCOVA with positive and negative moods as covariates. But these covariates were not independent of the treatment effect as shown in the following 2-way ANOVAs. For example, the Mean for Positive Mood is significantly different between the non-verbal physician empathy (empathetic, non-empathetic) and patient gender (male, female) factors. In addition, the Mean for Negative Mood is significantly different for the empathy factor. Hence, we feel that ANCOVA was not appropriate for the paper’s experiment.
+
+```{r}
+# check predictor and covariate independence
+covariate_independence1 <- lm(positive_mood ~ factored_condemp + factored_sex, project_data_tidied)
+anova(covariate_independence1)
+covariate_independence2 <- lm(negative_mood ~ factored_condemp + factored_sex, project_data_tidied)
+anova(covariate_independence2)
+```
+
+As a takeaway from this project, the above analysis demonstrates that before performing an experiment using ANCOVAs, it is extremely important to test the assumptions underlying those ANCOVAs. For example, it is important to test and see if the covariates of an ANCOVA are independent of the predictor variables or not. If not, then the ANCOVA test should not be attempted on that dataset. For our paper, the authors concluded that medical education should include non-verbal empathy training. However, given the possibility of incorrect usage of ANCOVA by the authors, we have to wonder whether the authors’ conclusion is valid anymore.
