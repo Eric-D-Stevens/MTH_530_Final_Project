@@ -91,6 +91,9 @@ img {
 .tabbed-pane {
   padding-top: 12px;
 }
+.html-widget {
+  margin-bottom: 20px;
+}
 button.code-folding-btn:focus {
   outline: none;
 }
@@ -386,6 +389,8 @@ competence_mean</code></pre>
 </div>
 <div id="extension" class="section level1">
 <h1>Extension</h1>
+<p>In order to use ANCOVA, covariates need to be independent of the treatment effect(s). To accomplish that, one should run an ANOVA with the covariate as the outcome and the independent variable(s) as predictors to check that the covariate does not differ significantly across levels of these variables. No ANCOVA should be performed using those covariates if there is a significant result.</p>
+<p>The experiment in our paper performed an ANCOVA with positive and negative moods as covariates. But these covariates were not independent of the treatment effect as shown in the following 2-way ANOVAs. For example, the Mean for Positive Mood is significantly different between the non-verbal physician empathy (empathetic, non-empathetic) and patient gender (male, female) factors. In addition, the Mean for Negative Mood is significantly different for the empathy factor. Hence, we feel that ANCOVA was not appropriate for the paper’s experiment.</p>
 <pre class="r"><code># check predictor and covariate independence
 covariate_independence1 &lt;- lm(positive_mood ~ factored_condemp + factored_sex, project_data_tidied)
 anova(covariate_independence1)</code></pre>
@@ -409,101 +414,7 @@ anova(covariate_independence2)</code></pre>
 ## Residuals        1361 945.24  0.6945                      
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</code></pre>
-<p><span style="color:deeppink">The above ANOVA results are fatal. They show that positive mood is not independent of participant sex or physician attitude (empathic or non-empathic) while negative mood is independent of participant sex only, not physician attitude. Still, given the above results we decided to complete the ANCOVAs for the 3 traits: warmth, empathy, and competence with positive and negative moods as covariates.</span></p>
-<div id="empathy-ancova-with-moods-as-covariate" class="section level3">
-<h3>empathy ANCOVA with moods as covariate</h3>
-<pre class="r"><code># perform Levene test for perceived empathy vs. physician sex
-leveneTest(project_data_tidied$empathy, project_data_tidied$factored_sex, center = median)</code></pre>
-<pre><code>## Levene's Test for Homogeneity of Variance (center = median)
-##         Df F value Pr(&gt;F)
-## group    1  1.3547 0.2447
-##       1361</code></pre>
-<pre class="r"><code># perform Levene test for perceived empathy vs. physician attitude
-leveneTest(project_data_tidied$empathy, project_data_tidied$factored_condemp, center = median)</code></pre>
-<pre><code>## Levene's Test for Homogeneity of Variance (center = median)
-##         Df F value    Pr(&gt;F)    
-## group    1  73.665 &lt; 2.2e-16 ***
-##       1361                      
-## ---
-## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</code></pre>
-<pre class="r"><code># perform ANCOVA for empathy DV
-# set contrasts for independent variables to orthogonal since Type III ANCOVA needs to be calculated
-contrasts(project_data_tidied$factored_condemp)&lt;-contr.helmert(2)
-contrasts(project_data_tidied$factored_sex)&lt;-contr.helmert(2)
-empathyModel&lt;-aov(empathy ~ factored_condemp + positive_mood + factored_sex + negative_mood, data = project_data_tidied)
-#summary.lm(empathyModel)
-Anova(empathyModel, type=&quot;III&quot;) # perform level III ANCOVA so that covariates and IVs can be passed to lm() in any order</code></pre>
-<pre><code>## Anova Table (Type III tests)
-## 
-## Response: empathy
-##                   Sum Sq   Df  F value  Pr(&gt;F)    
-## (Intercept)       239.10    1 235.9818 &lt; 2e-16 ***
-## factored_condemp  614.95    1 606.9309 &lt; 2e-16 ***
-## positive_mood      98.17    1  96.8911 &lt; 2e-16 ***
-## factored_sex        6.59    1   6.5042 0.01087 *  
-## negative_mood       0.17    1   0.1629 0.68655    
-## Residuals        1375.94 1358                     
-## ---
-## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</code></pre>
-<pre class="r"><code>adjustedMeans_empathy_sex&lt;-effect(&quot;factored_sex&quot;, empathyModel, se=TRUE)
-summary(adjustedMeans_empathy_sex)</code></pre>
-<pre><code>## 
-##  factored_sex effect
-## factored_sex
-##     Male   Female 
-## 2.659935 2.516777 
-## 
-##  Lower 95 Percent Confidence Limits
-## factored_sex
-##     Male   Female 
-## 2.574602 2.447755 
-## 
-##  Upper 95 Percent Confidence Limits
-## factored_sex
-##     Male   Female 
-## 2.745268 2.585799</code></pre>
-<p>Levene test shows that the variances of perceived empathy vs. participant’s sex are similar but the variances between perceived empathy and physician’s attitude are dissimilar.</p>
-<p>The ANCOVA of empathy by physisican attitude and participant sex with mood covariates shows that empathy can be predicted significantly by physician’s attitude, patient’s positive mood, and participant’s sex but not by patient’s negative mood.</p>
-<p>When the means are adjusted for the effect of the mood covariates, the empathy mean value becomes 2.66 for female participants vs. 2.52 for male participants. This is a reversal of the paper’s means which were 2.70 and 2.49 respectively.</p>
-</div>
-<div id="warmth-ancova-with-moods-as-covariates" class="section level3">
-<h3>warmth ANCOVA with moods as covariates</h3>
-<pre class="r"><code># perform ANCOVA for empathy DV
-warmthModel&lt;-aov(warmth ~ factored_condemp + positive_mood + factored_sex + negative_mood, data = project_data_tidied)
-Anova(warmthModel, type=&quot;III&quot;)</code></pre>
-<pre><code>## Anova Table (Type III tests)
-## 
-## Response: warmth
-##                   Sum Sq   Df  F value    Pr(&gt;F)    
-## (Intercept)       507.61    1 597.7711 &lt; 2.2e-16 ***
-## factored_condemp  613.61    1 722.5934 &lt; 2.2e-16 ***
-## positive_mood      55.56    1  65.4284 1.324e-15 ***
-## factored_sex        0.59    1   0.6891 0.4066295    
-## negative_mood      11.24    1  13.2399 0.0002843 ***
-## Residuals        1153.18 1358                       
-## ---
-## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</code></pre>
-<p>The ANCOVA of warmth by physisican attitude and participant sex with mood covariates shows that warmth can be predicted significantly by physician’s attitude and patient’s mood (whether positive or negatice) but not by participant’s sex.</p>
-</div>
-<div id="competence-ancova-with-moods-as-covariates" class="section level3">
-<h3>competence ANCOVA with moods as covariates</h3>
-<pre class="r"><code># perform ANCOVA for competence DV
-competenceModel&lt;-aov(competence ~ factored_condemp + positive_mood + factored_sex + negative_mood, data = project_data_tidied)
-Anova(competenceModel, type=&quot;III&quot;)</code></pre>
-<pre><code>## Anova Table (Type III tests)
-## 
-## Response: competence
-##                  Sum Sq   Df   F value    Pr(&gt;F)    
-## (Intercept)      704.59    1 1430.9379 &lt; 2.2e-16 ***
-## factored_condemp  46.30    1   94.0335 &lt; 2.2e-16 ***
-## positive_mood     43.50    1   88.3529 &lt; 2.2e-16 ***
-## factored_sex       0.10    1    0.2107 0.6463072    
-## negative_mood      7.33    1   14.8862 0.0001196 ***
-## Residuals        668.67 1358                        
-## ---
-## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</code></pre>
-<p>The ANCOVA of competence by physisican attitude and participant sex with mood covariates shows that competence can be predicted significantly by physician’s attitude and patient’s mood but not by participant’s sex.</p>
-</div>
+<p>As a takeaway from this project, the above analysis demonstrates that before performing an experiment using ANCOVAs, it is extremely important to test the assumptions underlying those ANCOVAs. For example, it is important to test and see if the covariates of an ANCOVA are independent of the predictor variables or not. If not, then the ANCOVA test should not be attempted on that dataset. For our paper, the authors concluded that medical education should include non-verbal empathy training. However, given the possibility of incorrect usage of ANCOVA by the authors, we have to wonder whether the authors’ conclusion is valid anymore.</p>
 </div>
 
 

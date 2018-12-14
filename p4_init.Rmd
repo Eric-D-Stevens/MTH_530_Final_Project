@@ -222,6 +222,10 @@ competence_error
 
 # Extension
 
+In order to use ANCOVA, covariates need to be independent of the treatment effect(s). To accomplish that, one should run an ANOVA with the covariate as the outcome and the independent variable(s) as predictors to check that the covariate does not differ significantly across levels of these variables. No ANCOVA should be performed using those covariates if there is a significant result.
+
+The experiment in our paper performed an ANCOVA with positive and negative moods as covariates. But these covariates were not independent of the treatment effect as shown in the following 2-way ANOVAs. For example, the Mean for Positive Mood is significantly different between the non-verbal physician empathy (empathetic, non-empathetic) and patient gender (male, female) factors. In addition, the Mean for Negative Mood is significantly different for the empathy factor. Hence, we feel that ANCOVA was not appropriate for the paper’s experiment.
+
 ```{r}
 # check predictor and covariate independence
 covariate_independence1 <- lm(positive_mood ~ factored_condemp + factored_sex, project_data_tidied)
@@ -230,4 +234,4 @@ covariate_independence2 <- lm(negative_mood ~ factored_condemp + factored_sex, p
 anova(covariate_independence2)
 ```
 
-<span style="color:deeppink">The above ANOVA results are fatal. They show that positive mood is not independent of participant sex or physician attitude (empathic or non-empathic) while negative mood is independent of participant sex only, not physician attitude. Still, given the above results we decided to complete the ANCOVAs for the 3 traits: warmth, empathy, and competence with positive and negative moods as covariates.</span>
+As a takeaway from this project, the above analysis demonstrates that before performing an experiment using ANCOVAs, it is extremely important to test the assumptions underlying those ANCOVAs. For example, it is important to test and see if the covariates of an ANCOVA are independent of the predictor variables or not. If not, then the ANCOVA test should not be attempted on that dataset. For our paper, the authors concluded that medical education should include non-verbal empathy training. However, given the possibility of incorrect usage of ANCOVA by the authors, we have to wonder whether the authors’ conclusion is valid anymore.
